@@ -28,12 +28,8 @@ int main()
 	bool isRunning = true;
 	while (isRunning)
 	{
-		std::cin >> buf;
-		if (buf == "quit")
-		{
-			isRunning = false;
-		}
 		ZeroMemory(buf, 1024);
+		std::cin >> buf;
 		int sendOk = sendto(out, buf, 1024, 0, (sockaddr*)&server, sizeof(server));
 		
 	}
