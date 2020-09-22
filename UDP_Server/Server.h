@@ -1,9 +1,9 @@
 #pragma once
 #include <WS2tcpip.h>
 #include <exception>
+#include <string>
+#include <sstream>
 
-
-#include "Vec2.h"
 #include "Networking.h"
 
 #pragma comment (lib, "ws2_32.lib")
@@ -17,12 +17,13 @@ public:
 	void SendingMsgs(char* sendBuf);
 	bool IsReceived() const;
 	bool IsSended() const;
+	Networking::IP_Endpoint GetClientIpPort() const;
+	void PlayerIPString(std::string& str);
+	void PlayerPortString(std::string& str);
 	~Server();
 private:
 	SOCKET in;
 	sockaddr_in serverHint;
-	Networking::IP_Endpoint clientIP_Endpoint;
-	Vei2 clientPos;
 	char buf[1024];
 	char bufOut[1024];
 	sockaddr_in client;

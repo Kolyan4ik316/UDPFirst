@@ -40,8 +40,8 @@ void Server::ReceivingMsgs(char* recBuf)
 
 void Server::SendingMsgs(char* sendBuf)
 {
-	*bufOut = *sendBuf;
-	if (bytesOut = sendto(in, bufOut, 1024, 0, (sockaddr*)&client, clientLenght))
+	//*bufOut = *sendBuf;
+	if (bytesOut = sendto(in, sendBuf, 1024, 0, (sockaddr*)&client, clientLenght))
 	{
 		isSended = true;
 	}
@@ -50,7 +50,6 @@ void Server::SendingMsgs(char* sendBuf)
 	{
 		isSended = false;
 	}
-	ZeroMemory(bufOut, 1024);
 	
 }
 
@@ -62,6 +61,27 @@ bool Server::IsReceived() const
 bool Server::IsSended() const
 {
 	return isSended;
+}
+
+Networking::IP_Endpoint Server::GetClientIpPort() const
+{
+	return Networking::IP_Endpoint({client.sin_addr.S_un.S_addr, client.sin_port});
+}
+
+void Server::PlayerIPString(std::string& str)
+{
+	char clientIp[256];
+	inet_ntop(AF_INET, &(client.sin_addr), clientIp, 256);
+	str.resize(256);
+	str = std::string(clientIp);
+
+}
+
+void Server::PlayerPortString(std::string& str)
+{
+	std::stringstream ss; 
+	ss << client.sin_port;
+	str = ss.str();
 }
 
 Server::~Server()
