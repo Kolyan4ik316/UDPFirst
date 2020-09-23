@@ -24,12 +24,12 @@ int main()
 			});
 		while (true)
 		{
+			game.Update();
 			mtx.lock();
 			game.PackingSendBuf();
 			mtx.unlock();
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			//std::cout << game.RecivedFromServer() << std::endl;
-			game.Update();
 			
 		}
 		sender.detach();
