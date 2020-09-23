@@ -15,7 +15,7 @@ int main()
 			while (true)
 			{
 				mtx.lock();
-				game.PackingSendBuf();
+				game.UnpackingRecBuf();
 				mtx.unlock();
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				
@@ -24,9 +24,11 @@ int main()
 			});
 		while (true)
 		{
-			game.UnpackingRecBuf();
-			std::cout << game.RecivedFromServer() << std::endl;
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			mtx.lock();
+			game.PackingSendBuf();
+			mtx.unlock();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			//std::cout << game.RecivedFromServer() << std::endl;
 			game.Update();
 			
 		}

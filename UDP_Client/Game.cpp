@@ -10,6 +10,28 @@ std::string Game::RecivedFromServer() const
 }
 void Game::Update()
 {
+	char input;
+	if (kbd.isKeyPressed(sf::Keyboard::W))
+	{
+		input |= 0x1;
+	}
+	else if (kbd.isKeyPressed(sf::Keyboard::S))
+	{
+		input |= 0x2;
+	}
+	else if (kbd.isKeyPressed(sf::Keyboard::A))
+	{
+		input |= 0x4;
+	}
+	else if (kbd.isKeyPressed(sf::Keyboard::D))
+	{
+		input |= 0x8;
+	}
+	else
+	{
+		input = 0;
+	}
+	sendBuf[0] = input;
 }
 
 void Game::UnpackingRecBuf()
@@ -19,6 +41,6 @@ void Game::UnpackingRecBuf()
 
 void Game::PackingSendBuf()
 {
-	std::cin >> sendBuf;
+	//std::cin >> sendBuf;
 	client.SendingMsgs(std::ref(sendBuf));
 }

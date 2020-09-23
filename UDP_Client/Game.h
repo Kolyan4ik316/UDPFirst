@@ -6,6 +6,8 @@
 #include <iostream>
 #include "FrameTimer.h"
 
+#include <SFML/Window/Keyboard.hpp>
+
 class Game
 {
 public:
@@ -19,10 +21,12 @@ public:
 private:
 	FrameTimer ft;
 	std::vector<Vec2> clientsPos;
+	Vec2 clientPos;
 	Client client;
 	char recvBuf[1024];
 	char sendBuf[1024];
 	int bytesRecived;
+	sf::Keyboard kbd;
 	//int bytesSended;
 
 };

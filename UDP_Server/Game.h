@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "FrameTimer.h"
+#include <iostream>
 
 class Game
 {

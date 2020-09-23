@@ -25,6 +25,12 @@ void Server::Bind(unsigned short port)
 	{
 		throw(std::exception("Can't bind socket! " + WSAGetLastError()));
 	}
+	unsigned long enabled = 1;
+	/*ioctlsocket(in, FIONBIO, &enabled);
+	if (WSAGetLastError() != WSAEWOULDBLOCK)
+	{
+		throw(std::exception("recvfrom returned SOCKET_ERROR, " + WSAGetLastError()));
+	}*/
 }
 
 int Server::ReceivingMsgs(char* recBuf)
