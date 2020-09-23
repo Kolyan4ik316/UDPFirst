@@ -8,7 +8,7 @@ Game::Game()
 }
 std::string Game::RecivedFromClient() const
 {
-	return std::string(std::string(clientIP) + " " + std::string(clientPort) + ": " + std::string(recvBuf));
+	return std::string(clientIP + " " + clientPort + ": " + std::string(recvBuf) + " bytes recived = "+ std::to_string(bytesRecived));
 }
 void Game::Update()
 {
@@ -16,12 +16,13 @@ void Game::Update()
 
 void Game::UnpackingRecBuf()
 {
-	server.ReceivingMsgs(std::ref(recvBuf));
-	server.PlayerIPString(clientIP);
-	server.PlayerPortString(clientPort);
+	bytesRecived = server.ReceivingMsgs(std::ref(recvBuf));
+	clientIP = server.PlayerIPString();
+	clientPort = server.PlayerPortString();
 }
 
 void Game::PackingSendBuf()
 {
+	//ZeroMemory(sendBuf, 1024);
 	server.SendingMsgs(std::ref(sendBuf));
 }

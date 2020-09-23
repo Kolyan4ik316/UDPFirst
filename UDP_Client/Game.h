@@ -1,15 +1,16 @@
 #pragma once
 #include "Vec2.h"
-#include "Server.h"
+#include "Client.h"
 #include <vector>
 #include <string>
+#include <iostream>
 #include "FrameTimer.h"
 
 class Game
 {
 public:
 	Game();
-	std::string RecivedFromClient() const;
+	std::string RecivedFromServer() const;
 	void Update();
 	//~Game() = default;
 public:
@@ -18,11 +19,10 @@ public:
 private:
 	FrameTimer ft;
 	std::vector<Vec2> clientsPos;
-	std::vector<Networking::IP_Endpoint> clientIP_Endpoint;
-	Server server;
+	Client client;
 	char recvBuf[1024];
-	char sendBuf[1024] = "Sock it!";
-	std::string clientIP;
-	std::string clientPort;
+	char sendBuf[1024];
 	int bytesRecived;
+	//int bytesSended;
+
 };

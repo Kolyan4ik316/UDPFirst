@@ -27,30 +27,28 @@ void Server::Bind(unsigned short port)
 	}
 }
 
-void Server::ReceivingMsgs(char* recBuf)
+int Server::ReceivingMsgs(char* recBuf)
 {
 	ZeroMemory(recBuf, 1024);
-	bytesIn = recvfrom(in, recBuf, 1024, 0, (sockaddr*)&client, &clientLenght);
+	int bytesIn = recvfrom(in, recBuf, 1024, 0, (sockaddr*)&client, &clientLenght);
 	isReceived = true;
 	if (bytesIn == SOCKET_ERROR)
 	{
 		isReceived = false;
 	}
+	return bytesIn;
 }
 
-void Server::SendingMsgs(char* sendBuf)
+int Server::SendingMsgs(char* sendBuf)
 {
-	//*bufOut = *sendBuf;
-	if (bytesOut = sendto(in, sendBuf, 1024, 0, (sockaddr*)&client, clientLenght))
-	{
-		isSended = true;
-	}
+	int bytesOut = sendto(in, sendBuf, 1024, 0, (sockaddr*)&client, clientLenght);
+	isSended = true;
 	
 	if (bytesOut == SOCKET_ERROR)
 	{
 		isSended = false;
 	}
-	
+	return bytesOut;
 }
 
 bool Server::IsReceived() const
@@ -68,20 +66,16 @@ Networking::IP_Endpoint Server::GetClientIpPort() const
 	return Networking::IP_Endpoint({client.sin_addr.S_un.S_addr, client.sin_port});
 }
 
-void Server::PlayerIPString(std::string& str)
+std::string Server::PlayerIPString() const
 {
 	char clientIp[256];
-	inet_ntop(AF_INET, &(client.sin_addr), clientIp, 256);
-	str.resize(256);
-	str = std::string(clientIp);
-
+	inet_ntop(AF_INET, &client.sin_addr, clientIp, 256);
+	return(std::string(clientIp));
 }
 
-void Server::PlayerPortString(std::string& str)
+std::string Server::PlayerPortString() const
 {
-	std::stringstream ss; 
-	ss << client.sin_port;
-	str = ss.str();
+	return(std::string(std::to_string(GetClientIpPort().port)));
 }
 
 Server::~Server()
