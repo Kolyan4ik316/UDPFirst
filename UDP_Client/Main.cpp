@@ -11,23 +11,26 @@ int main()
 	{
 		Game game;
 		std::mutex mtx;
-		std::thread receiver([&]() {
+		std::thread sender([&]() {
 			while (true)
 			{
 				mtx.lock();
-				game.UnpackingRecBuf();
+				game.PackingSendBuf();
 				mtx.unlock();
-				std::this_thread::sleep_for(std::chrono::milliseconds(500));
-				std::cout << game.RecivedFromServer() << std::endl;
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				
 			}
 
 			});
 		while (true)
 		{
+			game.UnpackingRecBuf();
+			std::cout << game.RecivedFromServer() << std::endl;
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			game.Update();
-			game.PackingSendBuf();
+			
 		}
-		receiver.detach();
+		sender.detach();
 	}
 	catch (std::exception& e)
 	{
