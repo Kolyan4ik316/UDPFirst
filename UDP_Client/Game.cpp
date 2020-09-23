@@ -13,19 +13,19 @@ void Game::Update()
 	char input;
 	if (kbd.isKeyPressed(sf::Keyboard::W))
 	{
-		input |= 0x1;
+		input = 0x1;
 	}
 	else if (kbd.isKeyPressed(sf::Keyboard::S))
 	{
-		input |= 0x2;
+		input = 0x2;
 	}
 	else if (kbd.isKeyPressed(sf::Keyboard::A))
 	{
-		input |= 0x4;
+		input = 0x4;
 	}
 	else if (kbd.isKeyPressed(sf::Keyboard::D))
 	{
-		input |= 0x8;
+		input = 0x8;
 	}
 	else
 	{

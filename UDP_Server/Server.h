@@ -2,11 +2,13 @@
 #include <WS2tcpip.h>
 #include <exception>
 #include <string>
+#include <map>
 
 
 #include "Networking.h"
 
 #pragma comment (lib, "ws2_32.lib")
+using namespace Networking;
 
 class Server
 {
@@ -17,7 +19,7 @@ public:
 	int SendingMsgs(char* sendBuf);
 	bool IsReceived() const;
 	bool IsSended() const;
-	Networking::IP_Endpoint GetClientIpPort() const;
+	IP_Endpoint GetClientIpPort() const;
 	std::string PlayerIPString() const;
 	std::string PlayerPortString() const;
 	~Server();
@@ -30,5 +32,6 @@ private:
 	int clientLenght = sizeof(client);
 	bool isReceived = false;
 	bool isSended = false;
+	unsigned short slot = 0xFFFF;
 };
 

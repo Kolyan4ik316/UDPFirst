@@ -18,11 +18,12 @@ public:
 	void PackingSendBuf();
 private:
 	FrameTimer ft;
-	std::vector<Vec2> clientsPos;
+	//std::vector<Vec2> clientsPos;
+	Vec2 clientPos;
 	std::vector<Networking::IP_Endpoint> clientIP_Endpoint;
 	Server server;
 	char recvBuf[1024];
-	char sendBuf[1024] = "Sock it!";
+	char sendBuf[1024];
 	std::string clientIP;
 	std::string clientPort;
 	int bytesRecived;

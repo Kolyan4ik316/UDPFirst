@@ -67,7 +67,7 @@ bool Server::IsSended() const
 	return isSended;
 }
 
-Networking::IP_Endpoint Server::GetClientIpPort() const
+IP_Endpoint Server::GetClientIpPort() const
 {
 	return Networking::IP_Endpoint({client.sin_addr.S_un.S_addr, client.sin_port});
 }

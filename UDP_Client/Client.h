@@ -2,10 +2,11 @@
 #include <WS2tcpip.h>
 #include <exception>
 #include <string>
+#include "Networking.h"
 
 
 #pragma comment (lib, "ws2_32.lib")
-
+using namespace Networking;
 
 class Client
 {
@@ -25,4 +26,5 @@ private:
 	char bufOut[1024];
 	bool isReceived = false;
 	bool isSended = false;
+	unsigned short slot = 0xFFFF;
 };
