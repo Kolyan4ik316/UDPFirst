@@ -26,11 +26,7 @@ void Server::Bind(unsigned short port)
 		throw(std::exception("Can't bind socket! " + WSAGetLastError()));
 	}
 	unsigned long enabled = 1;
-	/*ioctlsocket(in, FIONBIO, &enabled);
-	if (WSAGetLastError() != WSAEWOULDBLOCK)
-	{
-		throw(std::exception("recvfrom returned SOCKET_ERROR, " + WSAGetLastError()));
-	}*/
+	ioctlsocket(in, FIONBIO, &enabled);
 }
 
 int Server::ReceivingMsgs(char* recBuf)
@@ -45,11 +41,37 @@ int Server::ReceivingMsgs(char* recBuf)
 	return bytesIn;
 }
 
-int Server::SendingMsgs(char* sendBuf)
+int Server::ReceivingMsgs(char* recBuf, sockaddr_in& from)
 {
-	int bytesOut = sendto(in, sendBuf, 1024, 0, (sockaddr*)&client, clientLenght);
+	ZeroMemory(recBuf, 1024);
+	int fromLenght = sizeof(from);
+	int bytesIn = recvfrom(in, recBuf, 1024, 0, (sockaddr*)&from, &fromLenght);
+	isReceived = true;
+	if (bytesIn == SOCKET_ERROR)
+	{
+		isReceived = false;
+	}
+	return bytesIn;
+}
+
+int Server::SendingMsgs(char* sendBuf, int sizeOfBuffer)
+{
+	int bytesOut = sendto(in, sendBuf, sizeOfBuffer, 0, (sockaddr*)&client, clientLenght);
 	isSended = true;
 	
+	if (bytesOut == SOCKET_ERROR)
+	{
+		isSended = false;
+	}
+	return bytesOut;
+}
+
+int Server::SendingMsgs(char* sendBuf, int sizeOfBuffer, sockaddr_in& to)
+{
+	int toLenght = sizeof(to);
+	int bytesOut = sendto(in, sendBuf, sizeOfBuffer, 0, (sockaddr*)&to, toLenght);
+	isSended = true;
+
 	if (bytesOut == SOCKET_ERROR)
 	{
 		isSended = false;
@@ -82,6 +104,16 @@ std::string Server::PlayerIPString() const
 std::string Server::PlayerPortString() const
 {
 	return(std::string(std::to_string(GetClientIpPort().port)));
+}
+
+sockaddr_in Server::ServerHint() const
+{
+	return serverHint;
+}
+
+sockaddr_in Server::ClientAddress() const
+{
+	return client;
 }
 
 Server::~Server()

@@ -15,6 +15,7 @@ public:
 	void HintServer(std::string ip, unsigned short port);
 	int ReceivingMsgs(char* recBuf);
 	int SendingMsgs(char* sendBuf);
+	int SendingMsgs(char* sendBuf, int sizeOfBuffer);
 	bool IsReceived() const;
 	bool IsSended() const;
 	~Client();

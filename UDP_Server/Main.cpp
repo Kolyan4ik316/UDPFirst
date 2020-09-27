@@ -1,6 +1,5 @@
 #include <iostream>
 #include <thread>
-#include <mutex>
 #include "Server.h"
 #include "Game.h"
 
@@ -11,25 +10,11 @@ int main()
 	try
 	{
 		Game game;
-		std::mutex mtx;
-		std::thread receiver([&]() {
-			while (true)
-			{
-				mtx.lock();
-				game.UnpackingRecBuf();
-				mtx.unlock();
-				//std::cout << game.RecivedFromClient() << std::endl;
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
-
-			});
-		while (true)
+		while (game.IsRunning())
 		{
 			game.Update();
-			game.PackingSendBuf();
-			
+			//game.RecivedFromClient();
 		}
-		receiver.detach();
 	}
 	catch (std::exception& e)
 	{

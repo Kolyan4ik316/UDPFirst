@@ -10,29 +10,18 @@ int main()
 	try
 	{
 		Game game;
-		std::mutex mtx;
-		std::thread sender([&]() {
-			while (true)
-			{
-				mtx.lock();
-				game.UnpackingRecBuf();
-				mtx.unlock();
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-				
-			}
-
-			});
-		while (true)
+		game.OnEnable();
+		
+		while (game.IsRunning())
 		{
 			game.Update();
-			mtx.lock();
-			game.PackingSendBuf();
-			mtx.unlock();
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			
+			game.UnpackingRecBuf();
+			
 			//std::cout << game.RecivedFromServer() << std::endl;
 			
 		}
-		sender.detach();
+		game.OnDisable();
 	}
 	catch (std::exception& e)
 	{

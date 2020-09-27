@@ -6,41 +6,108 @@ Game::Game()
 }
 std::string Game::RecivedFromServer() const
 {
-	return std::string("Server sends: "+ std::string(recvBuf) + " " + std::to_string(bytesRecived));
+	return std::string("Server sends: "+ std::string(buffer) + " " + std::to_string(bytesRecived));
 }
 void Game::Update()
 {
-	char input;
+	if (slot == 0xFFFF)
+	{
+		bytesRecived = client.ReceivingMsgs(std::ref(buffer));
+		std::cout << bytesRecived << std::endl;
+		if (buffer[0] == (char)ServerMessage::Join_Result)
+		{
+			if (buffer[1] != 0)
+			{
+				memcpy(&slot, &buffer[2], 2);
+				//std::cout << "server assigned us slot " << std::to_string(slot) << std::endl;
+			}
+			else
+			{
+				std::cout << "server didn't let us in " << std::endl;
+			}
+		}
+		if (slot == 0xFFFF)
+		{
+			return;
+		}
+	}
+	
+	char input = 0;
 	if (kbd.isKeyPressed(sf::Keyboard::W))
 	{
-		input = 0x1;
+		input |= 0x1;
 	}
-	else if (kbd.isKeyPressed(sf::Keyboard::S))
+	if (kbd.isKeyPressed(sf::Keyboard::S))
 	{
-		input = 0x2;
+		input |= 0x2;
 	}
-	else if (kbd.isKeyPressed(sf::Keyboard::A))
+	if (kbd.isKeyPressed(sf::Keyboard::A))
 	{
-		input = 0x4;
+		input |= 0x4;
 	}
-	else if (kbd.isKeyPressed(sf::Keyboard::D))
+	if (kbd.isKeyPressed(sf::Keyboard::D))
 	{
-		input = 0x8;
+		input |= 0x8;
 	}
-	else
+	buffer[0] = (char)ClientMessage::Input;
+	memcpy(&slot, &buffer[1], 2);
+	buffer[3] = input;
+	client.SendingMsgs(std::ref(buffer), 4);
+
+	//bytesRecived = client.ReceivingMsgs(std::ref(buffer));
+	//memcpy(&ownSlot, &buffer[readIndex], 2);
+	//std::cout << "my slot is " << ownSlot << std::endl;
+	//std::cout << "buffer " << buffer << ", packet size: " << packetSize << std::endl;
+	int packetSize = client.ReceivingMsgs(std::ref(buffer));
+	int readIndex = 1;
+	while (readIndex < packetSize)
 	{
-		input = 0;
+
+		memcpy(&ownSlot, &buffer[readIndex], 2);
+		readIndex += sizeof(unsigned short);
+
+		memcpy(&playerPosition.x, &buffer[readIndex], 4);
+		readIndex += sizeof(float);
+
+		memcpy(&playerPosition.y, &buffer[readIndex], 4);
+		readIndex += sizeof(float);
+
+		memcpy(&playerPosition.facing, &buffer[readIndex], 4);
+		readIndex += sizeof(float);
 	}
-	sendBuf[0] = input;
+	std::cout << "pos x: " << playerPosition.x << ", pos y: " << playerPosition.y << ", facing: " << playerPosition.facing << std::endl;
+
+}
+
+bool Game::IsRunning() const
+{
+	return isRunning;
+}
+
+void Game::OnEnable()
+{
+	buffer[0] = (char)ClientMessage::Join;
+	client.SendingMsgs(std::ref(buffer), 1);
 }
 
 void Game::UnpackingRecBuf()
 {
-	bytesRecived = client.ReceivingMsgs(std::ref(recvBuf));
+	bytesRecived = client.ReceivingMsgs(std::ref(buffer));
 }
 
 void Game::PackingSendBuf()
 {
 	//std::cin >> sendBuf;
-	client.SendingMsgs(std::ref(sendBuf));
+	client.SendingMsgs(std::ref(buffer));
+}
+
+void Game::OnDisable()
+{
+	if (slot != 0xFFFF)
+	{
+		buffer[0] = (char)ClientMessage::Leave;
+		memcpy(&slot, &buffer, 2);
+	}
+	client.SendingMsgs(std::ref(buffer), 2);
+	isRunning = false;
 }

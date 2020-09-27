@@ -1,4 +1,5 @@
 #pragma once
+#include "Vec2.h"
 
 
 namespace Networking
@@ -9,14 +10,14 @@ namespace Networking
 		unsigned short port; // taking port
 	};
 
-	enum class ClientMessage : unsigned char
+	enum class ClientMessage : char
 	{
 		Join,		// tell server we're new here
 		Leave,		// tell server we're leaving
 		Input 		// tell server our user input
 	};
 
-	enum class ServerMessage : unsigned char
+	enum class ServerMessage : char
 	{
 		Join_Result,// tell client they're accepted/rejected
 		State 		// tell client game state
@@ -28,5 +29,12 @@ namespace Networking
 		int down; 
 		int left; 
 		int right;
+	};
+
+	struct PlayerState
+	{
+		float x, y;
+		float facing; 
+		float speed;
 	};
 }

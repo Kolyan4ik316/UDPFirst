@@ -9,6 +9,9 @@ Client::Client()
 	{
 		throw(std::exception("WSAStartup failed: " + WSAGetLastError()));
 	}
+
+	unsigned long enabled = 1;
+	ioctlsocket(out, FIONBIO, &enabled);
 }
 
 void Client::HintServer(std::string ip, unsigned short port)
@@ -36,6 +39,18 @@ int Client::ReceivingMsgs(char* recBuf)
 int Client::SendingMsgs(char* sendBuf)
 {
 	int bytesOut = sendto(out, sendBuf, 1024, 0, (sockaddr*)&server, serverLenght);
+	isSended = true;
+
+	if (bytesOut == SOCKET_ERROR)
+	{
+		isSended = false;
+	}
+	return bytesOut;
+}
+
+int Client::SendingMsgs(char* sendBuf, int sizeOfBuffer)
+{
+	int bytesOut = sendto(out, sendBuf, sizeOfBuffer, 0, (sockaddr*)&server, serverLenght);
 	isSended = true;
 
 	if (bytesOut == SOCKET_ERROR)
