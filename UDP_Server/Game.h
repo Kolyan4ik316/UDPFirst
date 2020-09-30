@@ -17,17 +17,15 @@ public:
 	//~Game() = default;
 public:
 	void UnpackingRecBuf();
-	void UnpackingRecBuf(sockaddr_in& from);
-	void PackingSendBuf(int sizeOfBuffer);
-	void PackingSendBuf(int sizeOfBuffer, sockaddr_in& to);
+	void PackingSendBuf();
 private:
 	FrameTimer ft;
 	//std::vector<Vec2> clientsPos;
 	//Vec2 clientPos;
 	//std::vector<Networking::IP_Endpoint> clientIP_Endpoint;
 	Server server;
-	char buffer[1024];
-	//char recvBuf[1024];
+	char recvBuffer[1024];
+	char sendBuffer[1024];
 	std::string clientIP;
 	std::string clientPort;
 	bool isRunning = true;
@@ -40,8 +38,8 @@ private:
 private:
 	static constexpr unsigned short Max_Clients = 32;
 	IP_Endpoint clientEndpoints[Max_Clients];
-	float time_since_heard_from_clients[Max_Clients];
 	PlayerState clientObjects[Max_Clients];
 	PlayerInput clientInputs[Max_Clients];
 	IP_Endpoint fromEndpoint;
+	float time_since_heard_from_clients[Max_Clients];
 };

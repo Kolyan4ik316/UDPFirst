@@ -10,11 +10,23 @@ int main()
 	try
 	{
 		Game game;
+		std::mutex mtx;
+		std::thread receiver([&]()
+			{
+				while (true)
+				{
+					mtx.lock();
+					game.UnpackingRecBuf();
+					mtx.unlock();
+				}
+			});
 		while (game.IsRunning())
 		{
 			game.Update();
+			game.PackingSendBuf();
 			//game.RecivedFromClient();
 		}
+		receiver.detach();
 	}
 	catch (std::exception& e)
 	{

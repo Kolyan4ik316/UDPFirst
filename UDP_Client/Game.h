@@ -31,7 +31,6 @@ private:
 	char buffer[1024];
 	int bytesRecived;
 	bool isRunning = true;
-	bool isSended0msg = false;
 	unsigned short slot = 0xFFFF;
 	bool inDestruction;
 	sf::Keyboard kbd;

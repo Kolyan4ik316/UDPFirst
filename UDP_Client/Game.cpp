@@ -63,17 +63,14 @@ void Game::Update()
 	while (readIndex < packetSize)
 	{
 
-		memcpy(&ownSlot, &buffer[readIndex], 2);
-		readIndex += sizeof(unsigned short);
+		readIndex += client.ReadFromBuffer(ownSlot, buffer, readIndex);
 
-		memcpy(&playerPosition.x, &buffer[readIndex], 4);
-		readIndex += sizeof(float);
+		readIndex += client.ReadFromBuffer(playerPosition.x, buffer, readIndex);
 
-		memcpy(&playerPosition.y, &buffer[readIndex], 4);
-		readIndex += sizeof(float);
+		readIndex += client.ReadFromBuffer(playerPosition.y, buffer, readIndex);
 
-		memcpy(&playerPosition.facing, &buffer[readIndex], 4);
-		readIndex += sizeof(float);
+		readIndex += client.ReadFromBuffer(playerPosition.facing, buffer, readIndex);
+
 	}
 	std::cout << "pos x: " << playerPosition.x << ", pos y: " << playerPosition.y << ", facing: " << playerPosition.facing << std::endl;
 
