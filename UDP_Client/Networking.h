@@ -14,7 +14,8 @@ namespace Networking
 	{
 		Join,		// tell server we're new here
 		Leave,		// tell server we're leaving
-		Input 		// tell server our user input
+		Input, 		// tell server our user input
+		Empty		// tell server our user nothing to do
 	};
 
 	enum class ServerMessage : char

@@ -5,6 +5,12 @@ namespace Networking
 {
 	struct IP_Endpoint
 	{
+		IP_Endpoint() = default;
+		IP_Endpoint(unsigned int address, unsigned short port)
+			:
+			address(address),
+			port(port)
+		{}
 		unsigned int address; // converting ipAddress to integer
 		unsigned short port; // taking port
 

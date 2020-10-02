@@ -25,14 +25,15 @@ void Server::Bind(unsigned short port)
 	{
 		throw(std::exception("Can't bind socket! " + WSAGetLastError()));
 	}
-	/*unsigned long enabled = 1;
-	ioctlsocket(in, FIONBIO, &enabled);*/
+	//unsigned long enabled = 1;
+	//ioctlsocket(in, FIONBIO, &enabled);
+	
 }
 
 
 int Server::ReceivingMsgs(char* recBuf, sockaddr_in& from)
 {
-	ZeroMemory(recBuf, 1024);
+	ZeroMemory(recBuf, sizeof(recBuf));
 	int fromLenght = sizeof(from);
 	int bytesIn = recvfrom(in, recBuf, 1024, 0, (sockaddr*)&from, &fromLenght);
 	isReceived = true;
@@ -64,6 +65,11 @@ bool Server::IsReceived() const
 bool Server::IsSended() const
 {
 	return isSended;
+}
+
+SOCKET Server::GetSocket()
+{
+	return in;
 }
 
 sockaddr_in Server::GetServerHint() const

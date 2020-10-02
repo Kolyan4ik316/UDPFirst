@@ -8,6 +8,7 @@
 #include "Networking.h"
 
 #pragma comment (lib, "ws2_32.lib")
+
 using namespace Networking;
 
 class Server
@@ -19,6 +20,7 @@ public:
 	int SendingMsgs(char* sendBuf, int sizeOfBuffer, sockaddr_in& to);
 	bool IsReceived() const;
 	bool IsSended() const;
+	SOCKET GetSocket();
 	sockaddr_in GetServerHint() const;
 	template<typename T>
 	int WriteToBuffer(char* buffer, int index,T& var)
