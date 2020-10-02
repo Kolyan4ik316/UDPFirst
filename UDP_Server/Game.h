@@ -12,11 +12,11 @@ class Game
 public:
 	Game();
 	std::string RecivedFromClient() const;
-	void Update();
+	void Update(std::mutex& mtx);
 	bool IsRunning()const;
 	//~Game() = default;
 public:
-	void UnpackingRecBuf();
+	void UnpackingRecBuf(std::mutex& mtx);
 	void PackingSendBuf();
 private:
 	FrameTimer ft;
@@ -37,5 +37,5 @@ private:
 	std::vector<PlayerState> clientObjects;
 	std::vector<PlayerInput> clientInputs;
 	std::vector<float> time_since_heard_from_clients;
-	//std::vector<unsigned short> slots;
+	std::vector<unsigned short> slots;
 };

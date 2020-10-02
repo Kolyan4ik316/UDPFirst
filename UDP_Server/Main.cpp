@@ -16,21 +16,19 @@ int main()
 			{
 				while (game.IsRunning())
 				{
-					mtx.lock();
-					game.UnpackingRecBuf();
-					mtx.unlock();
+					game.UnpackingRecBuf(std::ref(mtx));
 					//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				}
 			});
 		while (game.IsRunning())
 		{
-			game.Update();
+			game.Update(std::ref(mtx));
 			game.PackingSendBuf();
 			
 			//game.RecivedFromClient();
 			//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
-		receiver.detach();
+		receiver.join();
 	}
 	catch (std::exception& e)
 	{

@@ -8,22 +8,22 @@
 
 Game::Game()
 {
-	server.Bind(9999);
-	
-
+	server.Bind(54000);
 	
 }
 std::string Game::RecivedFromClient() const
 {
 	return std::string(clientIP + " " + clientPort + ": " + std::string(recvBuffer) + " bytes recived = ");
 }
-void Game::Update()
+void Game::Update(std::mutex& mtx)
 {
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	const float dt = ft.Mark();
 	
-
-	for (unsigned short i = 0; i < clientEndpoints.size(); ++i)
+	mtx.lock();
+	for (auto it = slots.begin(); it != slots.end(); ++it)
 	{
+		const unsigned short i = (unsigned short)std::distance(slots.begin(), it);
 		if (clientEndpoints.at(i).address)
 		{
 			if (clientInputs.at(i).up)
@@ -75,6 +75,7 @@ void Game::Update()
 			}
 		}
 	}
+	mtx.unlock();
 	
 }
 bool Game::IsRunning() const
@@ -82,7 +83,7 @@ bool Game::IsRunning() const
 	return isRunning;
 }
 
-void Game::UnpackingRecBuf()
+void Game::UnpackingRecBuf(std::mutex& mtx)
 {
 
 	sockaddr_in from;
@@ -107,15 +108,18 @@ void Game::UnpackingRecBuf()
 
 	case ClientMessage::Join:
 	{
+
 		unsigned short slot = unsigned short(-1);
-		//std::cout << "Client_Message::Join from \n" << fromEndpoint.address << std::endl;
-		
+		std::cout << "Client_Message::Join from " << fromEndpoint.address<<": "<<fromEndpoint.port << std::endl;
+		mtx.lock();
 		clientEndpoints.push_back({});
 		time_since_heard_from_clients.push_back(0.0f);
 		clientObjects.push_back({});
 		clientInputs.push_back({});
+		slots.push_back(fromEndpoint.port);
+		mtx.unlock();
 
-		for (unsigned short i = 0; i < clientEndpoints.size(); ++i)
+		/*for (unsigned short i = 0; i < clientEndpoints.size(); ++i)
 		{
 			if (clientEndpoints.at(i).address == 0)
 			{
@@ -125,23 +129,23 @@ void Game::UnpackingRecBuf()
 				//clientEndpoints.resize(slot + 1);
 				break;
 			}
-		}
+		}*/
 		
 
 		sendBuffer[0] = (char)ServerMessage::Join_Result;
-		if (slot != unsigned short(-1))
+		if (slots.back() != unsigned short(-1))
 		{
 			sendBuffer[1] = 1;
-			//std::cout << "client will be assigned to slot \n" << slot << std::endl;
-			server.WriteToBuffer(sendBuffer, 2, slot);
+			std::cout << "client will be assigned to slot " << slots.back() << std::endl;
+			server.WriteToBuffer(sendBuffer, 2, slots.back());
 			server.SendingMsgs(sendBuffer, 4, from);
 			if (server.IsSended())
 			{
 				
-				clientEndpoints.at(slot) = fromEndpoint;
-				time_since_heard_from_clients.at(slot) = 0.0f;
-				clientObjects.at(slot) = {};
-				clientInputs.at(slot) = {};
+				clientEndpoints.back() = fromEndpoint;
+				time_since_heard_from_clients.back() = 0.0f;
+				clientObjects.back() = {};
+				clientInputs.back() = {};
 			}
 		}
 		else
@@ -150,18 +154,23 @@ void Game::UnpackingRecBuf()
 			server.SendingMsgs(sendBuffer, 2, from);
 
 			std::cout << "Can't let client in " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
-			std::swap(clientEndpoints.at(slot), clientEndpoints.back());
+			
+			//std::swap(slots.begin())
+			mtx.lock();
+			slots.pop_back();
+			
+			//std::swap(clientEndpoints.at(slot), clientEndpoints.back());
 			clientEndpoints.pop_back();
 
-			std::swap(time_since_heard_from_clients.at(slot), time_since_heard_from_clients.back());
+			//std::swap(time_since_heard_from_clients.at(slot), time_since_heard_from_clients.back());
 			time_since_heard_from_clients.pop_back();
 
-			std::swap(clientObjects.at(slot), clientObjects.back());
+			//std::swap(clientObjects.at(slot), clientObjects.back());
 			clientObjects.pop_back();
 
-			std::swap(clientInputs.at(slot), clientInputs.back());
+			//std::swap(clientInputs.at(slot), clientInputs.back());
 			clientInputs.pop_back();
-
+			mtx.unlock();
 		}
 	}
 	break;
@@ -172,21 +181,33 @@ void Game::UnpackingRecBuf()
 		server.ReadFromBuffer(slot, recvBuffer, 1);
 		try
 		{
-			if (clientEndpoints.at(slot) == fromEndpoint)
+			
+			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
 			{
+				const auto it = std::find(slots.begin(), slots.end(), slot);
+				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+				
+				if (clientEndpoints.at(index) == fromEndpoint)
+				{
+					mtx.lock();
+					std::swap(slots.at(index), slots.back());
+					slots.pop_back();
 
-				std::swap(clientEndpoints.at(slot), clientEndpoints.back());
-				clientEndpoints.pop_back();
-				
-				std::swap(time_since_heard_from_clients.at(slot), time_since_heard_from_clients.back());
-				time_since_heard_from_clients.pop_back();
-				
-				std::swap(clientObjects.at(slot), clientObjects.back());
-				clientObjects.pop_back();
-				
-				std::swap(clientInputs.at(slot), clientInputs.back());
-				clientInputs.pop_back();
+					std::swap(clientEndpoints.at(index), clientEndpoints.back());
+					clientEndpoints.pop_back();
+
+					std::swap(time_since_heard_from_clients.at(index), time_since_heard_from_clients.back());
+					time_since_heard_from_clients.pop_back();
+
+					std::swap(clientObjects.at(index), clientObjects.back());
+					clientObjects.pop_back();
+
+					std::swap(clientInputs.at(index), clientInputs.back());
+					clientInputs.pop_back();
+					mtx.unlock();
+				}
 			}
+			
 		}
 		catch (const std::out_of_range& oor)
 		{
@@ -204,17 +225,24 @@ void Game::UnpackingRecBuf()
 		
 		try
 		{
-			if (clientEndpoints.at(slot) == fromEndpoint)
+			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
 			{
-				char input = recvBuffer[3];
+				const auto it = std::find(slots.begin(), slots.end(), slot);
+				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
 
-				clientInputs.at(slot).up = input & 0x1;
-				clientInputs.at(slot).down = input & 0x2;
-				clientInputs.at(slot).left = input & 0x4;
-				clientInputs.at(slot).right = input & 0x8;
+				if (clientEndpoints.at(index) == fromEndpoint)
+				{
+					char input = recvBuffer[3];
 
-				time_since_heard_from_clients.at(slot) = 0.0f;
+					clientInputs.at(index).up = input & 0x1;
+					clientInputs.at(index).down = input & 0x2;
+					clientInputs.at(index).left = input & 0x4;
+					clientInputs.at(index).right = input & 0x8;
+
+					time_since_heard_from_clients.at(index) = 0.0f;
+				}
 			}
+			
 		}
 		catch (const std::out_of_range& oor)
 		{
@@ -231,50 +259,61 @@ void Game::PackingSendBuf()
 {
 	sendBuffer[0] = (char)ServerMessage::State;
 	int bytesWriten = 1;
-	for (unsigned short i = 0; i < clientEndpoints.size(); ++i)
+	
+	
+	try
 	{
-		try
+		for (auto it = slots.begin(); it != slots.end(); ++it)
 		{
-			if (clientEndpoints.at(i).address)
+			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+
+			if (clientEndpoints.at(index).address)
 			{
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, i);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, *it);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(i).x);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).x);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(i).y);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).y);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(i).facing);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).facing);
 			}
+
 		}
-		catch (...)
-		{
-		}
-		
 	}
+	catch (...)
+	{
+
+	}
+		
+	
 
 	sockaddr_in to;
 	to.sin_family = AF_INET;
-	to.sin_port = htons(9999);
+	to.sin_port = htons(54000);
 	int to_length = sizeof(to);
 	
 	
 	
-	for (unsigned char i = 0; i < clientEndpoints.size(); ++i)
+	
+	try
 	{
-		try
+		for (auto it = slots.begin(); it != slots.end(); ++it)
 		{
-			if (clientEndpoints.at(i).address)
+			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+			if (clientEndpoints.at(index).address)
 			{
-				to.sin_addr.S_un.S_addr = clientEndpoints.at(i).address;
-				to.sin_port = clientEndpoints.at(i).port;
+				to.sin_addr.S_un.S_addr = clientEndpoints.at(index).address;
+				to.sin_port = clientEndpoints.at(index).port;
 				//std::cout << sendBuffer << std::endl;
 
 				server.SendingMsgs(sendBuffer, bytesWriten, to);
 			}
 		}
-		catch (...)
-		{
+		
+	}
+	catch (...)
+	{
 
-		}
+	
 	}
 }
