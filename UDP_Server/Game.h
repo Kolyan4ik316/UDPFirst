@@ -17,7 +17,7 @@ public:
 	//~Game() = default;
 public:
 	void UnpackingRecBuf(std::mutex& mtx);
-	void PackingSendBuf();
+	void PackingSendBuf(std::mutex& mtx);
 private:
 	FrameTimer ft;
 	Server server;

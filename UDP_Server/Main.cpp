@@ -23,12 +23,12 @@ int main()
 		while (game.IsRunning())
 		{
 			game.Update(std::ref(mtx));
-			game.PackingSendBuf();
+			game.PackingSendBuf(std::ref(mtx));
 			
 			//game.RecivedFromClient();
 			//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
-		receiver.join();
+		receiver.detach();
 	}
 	catch (std::exception& e)
 	{
