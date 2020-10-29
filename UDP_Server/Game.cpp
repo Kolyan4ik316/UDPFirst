@@ -83,7 +83,7 @@ void Game::Update(std::mutex& mtx)
 	}
 	catch (...)
 	{
-		return;
+		
 	}
 	
 }
@@ -102,12 +102,17 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 
 	if (bytesReceived == SOCKET_ERROR)
 	{
-
+		//IP_Endpoint fromEndpoint = {};
+		//sockaddr_in from = {};
 		BOOL bNewBehavior = FALSE;
 		DWORD dwBytesReturned = 0;
 		WSAIoctl(server.GetSocket(), SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0, &dwBytesReturned, NULL, NULL);
 
+		
 		std::cout << "Error with receiving data " << WSAGetLastError() << std::endl;
+		
+		
+		
 
 	}
 	fromEndpoint.address = from.sin_addr.S_un.S_addr;
@@ -181,7 +186,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		server.ReadFromBuffer(slot, recvBuffer, 1);
 		try
 		{
-			
+			//ZeroMemory(recvBuffer, 1024);
 			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
 			{
 				const auto it = std::find(slots.begin(), slots.end(), slot);
@@ -212,8 +217,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		}
 		catch (const std::out_of_range& oor)
 		{
-			break;
-			return;
+			
 		}
 	}
 	break;
@@ -251,8 +255,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		}
 		catch (const std::out_of_range& oor)
 		{
-			break;
-			return;
+			
 		}
 		
 		
@@ -291,7 +294,7 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	}
 	catch (...)
 	{
-		return;
+		
 	}
 	
 		
@@ -324,7 +327,7 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	}
 	catch (...)
 	{
-		return;
+		
 	
 	}
 	

@@ -18,12 +18,14 @@ public:
 	int SendingMsgs(char* sendBuf, int sizeOfBuffer);
 	bool IsReceived() const;
 	bool IsSended() const;
+	
 	template<typename T>
 	int WriteToBuffer(char* buffer, int index, T& var)
 	{
 		memcpy(&buffer[index], &var, sizeof(var));
 		return sizeof(var);
 	}
+	
 	template<typename T>
 	int ReadFromBuffer(T& var, char* buffer, int index)
 	{

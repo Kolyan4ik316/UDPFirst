@@ -1,5 +1,4 @@
 #include <thread>
-#include <mutex>
 
 #include "Client.h"
 #include "Game.h"
@@ -10,18 +9,30 @@ int main()
 	try
 	{
 		Game game;
+		std::mutex mtx;
 		game.OnEnable();
+		std::cout << "Client start work" << std::endl;
+		std::thread receiver([&]()
+			{
+				while (game.IsRunning())
+				{
+					game.UnpackingRecBuf(std::ref(mtx));
+				}
+				
+			});
 		
 		while (game.IsRunning())
 		{
-			game.Update();
+			game.Update(std::ref(mtx));
+			game.PackingSendBuf(std::ref(mtx));
 			
-			game.UnpackingRecBuf();
 			
 			//std::cout << game.RecivedFromServer() << std::endl;
 			
 		}
-		game.OnDisable();
+		receiver.join();
+		//game.OnDisable();
+		
 	}
 	catch (std::exception& e)
 	{
@@ -31,8 +42,5 @@ int main()
 	{
 		std::cout << "Something went wrong!" << std::endl;
 	}
-
-
-	system("pause");
 	return 0;
 }
