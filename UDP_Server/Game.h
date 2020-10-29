@@ -38,4 +38,5 @@ private:
 	std::vector<PlayerInput> clientInputs;
 	std::vector<float> time_since_heard_from_clients;
 	std::vector<unsigned short> slots;
+	unsigned short errorSlot;
 };

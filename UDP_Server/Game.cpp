@@ -83,7 +83,16 @@ void Game::Update(std::mutex& mtx)
 	}
 	catch (...)
 	{
-		
+		unsigned short slot;
+		server.ReadFromBuffer(slot, recvBuffer, 1);
+		if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+		{
+			const auto it = std::find(slots.begin(), slots.end(), slot);
+			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+			std::swap(slots.at(index), slots.back());
+			slots.pop_back();
+		}
+
 	}
 	
 }
@@ -99,7 +108,8 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 	IP_Endpoint fromEndpoint;
 	int bytesReceived;
 	bytesReceived = server.ReceivingMsgs(recvBuffer, from);
-
+	fromEndpoint.address = from.sin_addr.S_un.S_addr;
+	fromEndpoint.port = from.sin_port;
 	if (bytesReceived == SOCKET_ERROR)
 	{
 		//IP_Endpoint fromEndpoint = {};
@@ -107,16 +117,29 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		BOOL bNewBehavior = FALSE;
 		DWORD dwBytesReturned = 0;
 		WSAIoctl(server.GetSocket(), SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0, &dwBytesReturned, NULL, NULL);
-
-		
-		std::cout << "Error with receiving data " << WSAGetLastError() << std::endl;
 		
 		
+		if (WSAGetLastError() == 0)
+		{
+			unsigned short slot;
+			server.ReadFromBuffer(slot, recvBuffer, 1);
+			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			{
+				const auto it = std::find(slots.begin(), slots.end(), slot);
+				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+				std::swap(slots.at(index), slots.back());
+				slots.pop_back();
+			}
+			fromEndpoint = {};
+			ZeroMemory(recvBuffer, 1024);
+		}
+		else
+		{
+			std::cout << "Error with receiving data " << WSAGetLastError() << std::endl;
+		}
 		
-
 	}
-	fromEndpoint.address = from.sin_addr.S_un.S_addr;
-	fromEndpoint.port = from.sin_port;
+	
 	switch ((ClientMessage)recvBuffer[0])
 	{
 
@@ -125,56 +148,65 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 
 		std::lock_guard<std::mutex> lm(mtx);
 		unsigned short slot = unsigned short(-1);
-		std::cout << "Client_Message::Join from " << fromEndpoint.address<<": "<<fromEndpoint.port << std::endl;
 		
-		clientEndpoints.push_back({});
-		time_since_heard_from_clients.push_back(0.0f);
-		clientObjects.push_back({});
-		clientInputs.push_back({});
-		slots.push_back(fromEndpoint.port);
+		
+		if (fromEndpoint.address)
+		{
+			std::cout << "Client_Message::Join from " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
+			clientEndpoints.push_back({});
+			time_since_heard_from_clients.push_back(0.0f);
+			clientObjects.push_back({});
+			clientInputs.push_back({});
+			slots.push_back(fromEndpoint.port);
+		
 		
 		
 
-		sendBuffer[0] = (char)ServerMessage::Join_Result;
-		if (slots.back() != unsigned short(-1))
-		{
-			sendBuffer[1] = 1;
-			std::cout << "client will be assigned to slot " << slots.back() << std::endl;
-			server.WriteToBuffer(sendBuffer, 2, slots.back());
-			server.SendingMsgs(sendBuffer, 4, from);
-			if (server.IsSended())
+			sendBuffer[0] = (char)ServerMessage::Join_Result;
+			if (slots.back() != unsigned short(-1))
 			{
+				sendBuffer[1] = 1;
+				std::cout << "client will be assigned to slot " << slots.back() << std::endl;
+				server.WriteToBuffer(sendBuffer, 2, slots.back());
+				server.SendingMsgs(sendBuffer, 4, from);
+				if (server.IsSended())
+				{
+					if (fromEndpoint.address)
+					{
+						clientEndpoints.back() = fromEndpoint;
+						time_since_heard_from_clients.back() = 0.0f;
+						clientObjects.back() = {};
+						clientInputs.back() = {};
+					}
 				
-				clientEndpoints.back() = fromEndpoint;
-				time_since_heard_from_clients.back() = 0.0f;
-				clientObjects.back() = {};
-				clientInputs.back() = {};
-				
+				}
 			}
-		}
-		else
-		{
-			//std::lock_guard<std::mutex> lm(mtx);
-			sendBuffer[1] = 0;
-			server.SendingMsgs(sendBuffer, 2, from);
+			else
+			{
+				//std::lock_guard<std::mutex> lm(mtx);
+				sendBuffer[1] = 0;
+				server.SendingMsgs(sendBuffer, 2, from);
 
-			std::cout << "Can't let client in " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
+				std::cout << "Can't let client in " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
 			
 			
-			slots.pop_back();
+				slots.pop_back();
 			
 			
-			clientEndpoints.pop_back();
-
-			
-			time_since_heard_from_clients.pop_back();
+				clientEndpoints.pop_back();
 
 			
-			clientObjects.pop_back();
+				time_since_heard_from_clients.pop_back();
 
 			
-			clientInputs.pop_back();
+				clientObjects.pop_back();
+
 			
+				clientInputs.pop_back();
+
+				fromEndpoint = {};
+			
+			}
 		}
 	}
 	break;
@@ -217,7 +249,16 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		}
 		catch (const std::out_of_range& oor)
 		{
-			
+			std::cout << "Leave message error" << std::endl;
+			unsigned short slot;
+			server.ReadFromBuffer(slot, recvBuffer, 1);
+			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			{
+				const auto it = std::find(slots.begin(), slots.end(), slot);
+				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+				std::swap(slots.at(index), slots.back());
+				slots.pop_back();
+			}
 		}
 	}
 	break;
@@ -255,7 +296,16 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		}
 		catch (const std::out_of_range& oor)
 		{
-			
+			std::cout << "Input message error" << std::endl;
+			unsigned short slot;
+			server.ReadFromBuffer(slot, recvBuffer, 1);
+			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			{
+				const auto it = std::find(slots.begin(), slots.end(), slot);
+				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+				std::swap(slots.at(index), slots.back());
+				slots.pop_back();
+			}
 		}
 		
 		
@@ -278,6 +328,7 @@ void Game::PackingSendBuf(std::mutex& mtx)
 		for (auto it = slots.begin(); it != slots.end(); ++it)
 		{
 			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+			errorSlot = index;
 			
 			if (clientEndpoints.at(index).address)
 			{
@@ -294,6 +345,13 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	}
 	catch (...)
 	{
+		
+		std::cout << "Packing message error" << std::endl;
+		//std::lock_guard<std::mutex> lm(mtx);
+		std::swap(slots.at(errorSlot), slots.back());
+		slots.pop_back();
+
+		ZeroMemory(sendBuffer, 1024);
 		
 	}
 	
@@ -314,21 +372,30 @@ void Game::PackingSendBuf(std::mutex& mtx)
 		for (auto it = slots.begin(); it != slots.end(); ++it)
 		{
 			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+			errorSlot = index;
 			if (clientEndpoints.at(index).address)
 			{
 				to.sin_addr.S_un.S_addr = clientEndpoints.at(index).address;
 				to.sin_port = clientEndpoints.at(index).port;
 				
-
-				server.SendingMsgs(sendBuffer, bytesWriten, to);
+				if (to.sin_addr.S_un.S_addr)
+				{
+					server.SendingMsgs(sendBuffer, bytesWriten, to);
+				}
+				
 			}
 		}
 		
 	}
 	catch (...)
 	{
-		
-	
+		std::cout << "Sending packed message error" << std::endl;
+		std::swap(slots.at(errorSlot), slots.back());
+		slots.pop_back();
+
+		to = {};
+
+		ZeroMemory(sendBuffer, 1024);
 	}
 	
 }
