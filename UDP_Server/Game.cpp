@@ -30,37 +30,37 @@ void Game::Update(std::mutex& mtx)
 			const unsigned short i = (unsigned short)std::distance(slots.begin(), it);
 			if (clientEndpoints.at(i).address)
 			{
+				PlayerState state = { 0.0f, 0.0f };
+
 				if (clientInputs.at(i).up)
 				{
-					//std::cout << "client input up" << std::endl;
-					clientObjects.at(i).speed += acceleration * dt;
-					if (clientObjects.at(i).speed > maxSpeed)
-					{
-						clientObjects.at(i).speed = maxSpeed;
-					}
+					state.y -= acceleration * dt;
+					state.x = 0;
 				}
 				if (clientInputs.at(i).down)
 				{
-					//std::cout << "client input down" << std::endl;
-					clientObjects.at(i).speed -= acceleration * dt;
-					if (clientObjects.at(i).speed < 0.0f)
-					{
-						clientObjects.at(i).speed = 0.0f;
-					}
+					state.y += acceleration * dt;
+					state.x = 0;
 				}
 				if (clientInputs.at(i).left)
 				{
-					//std::cout << "client input left" << std::endl;
-					clientObjects.at(i).facing -= turnSpeed * dt;
+					state.x -= acceleration * dt;
+					state.y = 0;
 				}
 				if (clientInputs.at(i).right)
 				{
-					//std::cout << "client input right" << std::endl;
-					clientObjects.at(i).facing += turnSpeed * dt;
+					state.x += acceleration * dt;
+					state.y = 0;
 				}
-
-				clientObjects.at(i).x += clientObjects.at(i).speed * dt * sinf(clientObjects.at(i).facing);
-				clientObjects.at(i).y += clientObjects.at(i).speed * dt * cosf(clientObjects.at(i).facing);
+				if (clientInputs.at(i).empty)
+				{
+					state.x = 0;
+					state.y = 0;
+				}
+				
+				
+				clientObjects.at(i).x += state.x;
+				clientObjects.at(i).y += state.y;
 
 				time_since_heard_from_clients.at(i) += dt;
 				if (time_since_heard_from_clients.at(i) > clientTimeOut)
@@ -81,8 +81,9 @@ void Game::Update(std::mutex& mtx)
 		}
 		
 	}
-	catch (...)
+	catch (const std::out_of_range& oor)
 	{
+		std::cout << "Udpating error" << oor.what() << std::endl;
 		unsigned short slot;
 		server.ReadFromBuffer(slot, recvBuffer, 1);
 		if (std::find(slots.begin(), slots.end(), slot) != slots.end())
@@ -249,7 +250,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		}
 		catch (const std::out_of_range& oor)
 		{
-			std::cout << "Leave message error" << std::endl;
+			std::cout << "Leave message error"<< oor.what() << std::endl;
 			unsigned short slot;
 			server.ReadFromBuffer(slot, recvBuffer, 1);
 			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
@@ -283,10 +284,11 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 				{
 					char input = recvBuffer[3];
 					
-					clientInputs.at(index).up = input & 0x1;
-					clientInputs.at(index).down = input & 0x2;
-					clientInputs.at(index).left = input & 0x4;
-					clientInputs.at(index).right = input & 0x8;
+					clientInputs.at(index).up = input == 1;
+					clientInputs.at(index).down = input == 2;
+					clientInputs.at(index).left = input == 3;
+					clientInputs.at(index).right = input == 4;
+					clientInputs.at(index).empty = input  == 0;
 
 					time_since_heard_from_clients.at(index) = 0.0f;
 					
@@ -296,7 +298,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		}
 		catch (const std::out_of_range& oor)
 		{
-			std::cout << "Input message error" << std::endl;
+			std::cout << "Input message error" << oor.what() << std::endl;
 			unsigned short slot;
 			server.ReadFromBuffer(slot, recvBuffer, 1);
 			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
@@ -337,16 +339,14 @@ void Game::PackingSendBuf(std::mutex& mtx)
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).x);
 
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).y);
-
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).facing);
 			}
 		}
 		
 	}
-	catch (...)
+	catch (const std::out_of_range& oor)
 	{
 		
-		std::cout << "Packing message error" << std::endl;
+		std::cout << "Packing message error" << oor.what() << std::endl;
 		//std::lock_guard<std::mutex> lm(mtx);
 		std::swap(slots.at(errorSlot), slots.back());
 		slots.pop_back();
@@ -387,9 +387,9 @@ void Game::PackingSendBuf(std::mutex& mtx)
 		}
 		
 	}
-	catch (...)
+	catch (const std::out_of_range& oor)
 	{
-		std::cout << "Sending packed message error" << std::endl;
+		std::cout << "Sending packed message error" << oor.what() << std::endl;
 		std::swap(slots.at(errorSlot), slots.back());
 		slots.pop_back();
 

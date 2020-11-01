@@ -42,12 +42,11 @@ namespace Networking
 		int down; 
 		int left; 
 		int right;
+		int empty;
 	};
 
 	struct PlayerState
 	{
 		float x, y;
-		float facing;
-		float speed;
 	};
 }

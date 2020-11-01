@@ -35,7 +35,5 @@ namespace Networking
 	struct PlayerState
 	{
 		float x, y;
-		float facing; 
-		float speed;
 	};
 }
