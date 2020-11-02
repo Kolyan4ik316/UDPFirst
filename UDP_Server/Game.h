@@ -28,7 +28,7 @@ private:
 	bool isRunning = true;
 	//static constexpr float deltaTime = 1.0f / 60.0f;
 	static constexpr float maxSpeed = 50.0f;
-	static constexpr float clientTimeOut = 5.0f;
+	static constexpr float clientTimeOut = 15.0f;
 	static constexpr float acceleration = 25.0f;
 	static constexpr float turnSpeed = 0.5f;
 private:

@@ -65,11 +65,11 @@ void Game::Update(std::mutex& mtx)
 				
 			}
 		}
-		for (unsigned short i = 0; i < clientAttr.size(); i++)
+		for (auto& e : clientAttr)
 		{
-			if (clientAttr.at(i).time_since_heard_from_client > clientTimeOut)
+			if (e.time_since_heard_from_client > clientTimeOut)
 			{
-				std::swap(clientAttr.at(i), clientAttr.back());
+				std::swap(e, clientAttr.back());
 				clientAttr.pop_back();
 			}
 		}
