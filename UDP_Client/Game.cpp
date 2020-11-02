@@ -8,12 +8,18 @@ Game::Game()
 }
 void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 {
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	const float dt = ft.Mark();
+	std::lock_guard<std::mutex> lm(mtx);
+	
 	window.clear();
 	
-		
+	
+
 	player.setPosition(sf::Vector2f(localPlayer.x, localPlayer.y));
 	window.draw(player);
-	
+	userTimeOut += dt;
+	//std::cout << userTimeOut << std::endl;
 	
 	for (auto other = otherPlayers.begin(); other != otherPlayers.end(); other++)
 	{
@@ -23,9 +29,32 @@ void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 			const unsigned short index1 = (unsigned short)std::distance(clientObjects.begin(), otherClient);
 			if (index0 == index1)
 			{
+				time_since_heard_from_clients.at(index0) += dt;
+
+				
+
 				otherPlayers.at(index1).setPosition(sf::Vector2f(clientObjects.at(index0).x, clientObjects.at(index0).y));
 				window.draw(otherPlayers.at(index0));
 			}
+		}
+	}
+	for (unsigned short index = 0; index < time_since_heard_from_clients.size(); index++)
+	{
+		//std::cout << slots.at(index) << " - user have time out: " << time_since_heard_from_clients.at(index) << std::endl;
+		if (time_since_heard_from_clients.at(index) > timeOut)
+		{
+
+			std::swap(slots.at(index), slots.back());
+			slots.pop_back();
+
+			std::swap(clientObjects.at(index), clientObjects.back());
+			clientObjects.pop_back();
+
+			std::swap(otherPlayers.at(index), otherPlayers.back());
+			otherPlayers.pop_back();
+
+			std::swap(time_since_heard_from_clients.at(index), time_since_heard_from_clients.back());
+			time_since_heard_from_clients.pop_back();
 		}
 	}
 	
@@ -91,7 +120,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 
 				readIndex += client.ReadFromBuffer(clientObjects.at(index).y, recvBuffer, readIndex);
 
-					
+				readIndex += client.ReadFromBuffer(time_since_heard_from_clients.at(index), recvBuffer, readIndex);
 				//std::cout << "ID : " << recvSlot << ", pos x : " << clientObjects.at(index).x << ", pos y: " << clientObjects.at(index).y << std::endl;
 						
 
@@ -102,13 +131,16 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 				{
 					float recivedX;
 					float recivedY;
+					float time;
 					readIndex += client.ReadFromBuffer(recivedX, recvBuffer, readIndex);
 					readIndex += client.ReadFromBuffer(recivedY, recvBuffer, readIndex);
+					readIndex += client.ReadFromBuffer(time, recvBuffer, readIndex);
 					slots.push_back(recvSlot);
 					
 					clientObjects.push_back(PlayerState{ recivedX, recivedY });
 					otherPlayers.push_back(sf::RectangleShape(sf::Vector2f(50.0f, 50.0f)));
 					otherPlayers.back().setFillColor(sf::Color::Red);
+					time_since_heard_from_clients.push_back(time);
 				}
 				else
 				{
@@ -124,6 +156,9 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 					std::swap(otherPlayers.at(index), otherPlayers.back());
 					otherPlayers.pop_back();
 
+					std::swap(time_since_heard_from_clients.at(index), time_since_heard_from_clients.back());
+					time_since_heard_from_clients.pop_back();
+
 				}
 			}
 			else
@@ -134,6 +169,10 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 					readIndex += client.ReadFromBuffer(localPlayer.x, recvBuffer, readIndex);
 
 					readIndex += client.ReadFromBuffer(localPlayer.y, recvBuffer, readIndex);
+					
+					readIndex += client.ReadFromBuffer(userTimeOut, recvBuffer, readIndex);
+
+					
 
 					//std::cout << "own player : " << "pos x : " << localPlayer.x << ", pos y: " << localPlayer.y << std::endl;
 				}
@@ -149,19 +188,13 @@ void Game::PackingSendBuf(std::mutex& mtx, bool& focused)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	std::lock_guard<std::mutex> lm(mtx);
-	timeOut += ft.Mark();
 	
 	sendBuffer[0] = (char)ClientMessage::Input;
+
 	int bytes_written = 1;
 	bytes_written += client.WriteToBuffer(sendBuffer, bytes_written, ownSlot);
 	if (focused)
 	{
-		/*if (kbd.isKeyPressed(sf::Keyboard::Q))
-		{
-			OnDisable();
-		}*/
-
-
 
 		if (ownSlot != 0xFFFF)
 		{
@@ -192,20 +225,13 @@ void Game::PackingSendBuf(std::mutex& mtx, bool& focused)
 	sendBuffer[3] = input;
 	if ((client.SendingMsgs(std::ref(sendBuffer), 4) == 4))
 	{
-		timeOut = 0;
+		userTimeOut = 0;
 	}
 
 
 	//sendBuffer[0] = (char)ClientMessage::Input;
 	//client.ReadFromBuffer(ownSlot, recvBuffer, 1);
 	//memcpy(&slot, &buffer[1], 2);
-	
-	
-	if(timeOut >= 10.f)
-	{
-		OnEnable(mtx);
-		timeOut = 0;
-	}
 	
 }
 

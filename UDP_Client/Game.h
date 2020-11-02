@@ -57,5 +57,7 @@ private:
 	sf::Keyboard kbd;
 	sf::RectangleShape player;
 	std::vector<sf::RectangleShape> otherPlayers;
-	float timeOut = 0.0f;
+	std::vector<float> time_since_heard_from_clients;
+	static constexpr float timeOut = 15.0f;
+	float userTimeOut = 0.0f;
 };

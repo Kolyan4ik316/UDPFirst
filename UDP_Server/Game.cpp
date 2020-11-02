@@ -325,6 +325,8 @@ void Game::PackingSendBuf(std::mutex& mtx)
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).objects.x);
 
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).objects.y);
+
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).time_since_heard_from_client);
 			}
 		}
 		
