@@ -24,54 +24,55 @@ void Game::Update(std::mutex& mtx)
 	
 	try
 	{
-		if (!clientAttr.empty())
+		
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 		{
-			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
+			const unsigned short i = (unsigned short)std::distance(clientAttr.begin(), it);
+			if (clientAttr.at(i).ipPort.address)
 			{
-				const unsigned short i = (unsigned short)std::distance(clientAttr.begin(), it);
-				if (clientAttr.at(i).ipPort.address)
+				PlayerState state = { 0.0f, 0.0f };
+
+				if (clientAttr.at(i).input.up)
 				{
-					PlayerState state = { 0.0f, 0.0f };
-
-					if (clientAttr.at(i).input.up)
-					{
-						state.y -= acceleration * dt;
-						state.x = 0;
-					}
-					if (clientAttr.at(i).input.down)
-					{
-						state.y += acceleration * dt;
-						state.x = 0;
-					}
-					if (clientAttr.at(i).input.left)
-					{
-						state.x -= acceleration * dt;
-						state.y = 0;
-					}
-					if (clientAttr.at(i).input.right)
-					{
-						state.x += acceleration * dt;
-						state.y = 0;
-					}
-					if (clientAttr.at(i).input.empty)
-					{
-						state.x = 0;
-						state.y = 0;
-					}
-
-					clientAttr.at(i).objects.x += state.x;
-					clientAttr.at(i).objects.y += state.y;
-
-					clientAttr.at(i).time_since_heard_from_client += dt;
-					if (clientAttr.at(i).time_since_heard_from_client > clientTimeOut)
-					{
-						std::swap(clientAttr.at(i), clientAttr.back());
-						clientAttr.pop_back();
-					}
+					state.y -= acceleration * dt;
+					state.x = 0;
 				}
+				if (clientAttr.at(i).input.down)
+				{
+					state.y += acceleration * dt;
+					state.x = 0;
+				}
+				if (clientAttr.at(i).input.left)
+				{
+					state.x -= acceleration * dt;
+					state.y = 0;
+				}
+				if (clientAttr.at(i).input.right)
+				{
+					state.x += acceleration * dt;
+					state.y = 0;
+				}
+				if (clientAttr.at(i).input.empty)
+				{
+					state.x = 0;
+					state.y = 0;
+				}
+
+				clientAttr.at(i).objects.x += state.x;
+				clientAttr.at(i).objects.y += state.y;
+
+				clientAttr.at(i).time_since_heard_from_client += dt;
+				
 			}
 		}
-		
+		for (unsigned short i = 0; i < clientAttr.size(); i++)
+		{
+			if (clientAttr.at(i).time_since_heard_from_client > clientTimeOut)
+			{
+				std::swap(clientAttr.at(i), clientAttr.back());
+				clientAttr.pop_back();
+			}
+		}
 		
 	}
 	catch (const std::out_of_range& oor)
