@@ -6,10 +6,6 @@ Game::Game()
 	player.setSize(sf::Vector2f(50.0f, 50.0f));
 	player.setFillColor(sf::Color::Green);
 }
-std::string Game::RecivedFromServer() const
-{
-	return std::string("Server sends: "+ std::string(recvBuffer) + " " + std::to_string(bytesRecived));
-}
 void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 {
 	window.clear();

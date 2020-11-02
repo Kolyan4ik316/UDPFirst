@@ -10,8 +10,8 @@ Client::Client()
 		throw(std::exception("WSAStartup failed: " + WSAGetLastError()));
 	}
 
-	unsigned long enabled = 1;
-	ioctlsocket(out, FIONBIO, &enabled);
+	//unsigned long enabled = 1;
+	//ioctlsocket(out, FIONBIO, &enabled);
 }
 
 void Client::HintServer(std::string ip, unsigned short port)
@@ -28,10 +28,9 @@ int Client::ReceivingMsgs(char* recBuf)
 {
 	ZeroMemory(recBuf, 1024);
 	int bytesIn = recvfrom(out, recBuf, 1024, 0, (sockaddr*)&server, &serverLenght);
-	isReceived = true;
 	if (bytesIn == SOCKET_ERROR)
 	{
-		isReceived = false;
+		return WSAGetLastError();
 	}
 	return bytesIn;
 }
@@ -39,11 +38,10 @@ int Client::ReceivingMsgs(char* recBuf)
 int Client::SendingMsgs(char* sendBuf)
 {
 	int bytesOut = sendto(out, sendBuf, 1024, 0, (sockaddr*)&server, serverLenght);
-	isSended = true;
 
 	if (bytesOut == SOCKET_ERROR)
 	{
-		isSended = false;
+		return WSAGetLastError();
 	}
 	return bytesOut;
 }
@@ -51,23 +49,12 @@ int Client::SendingMsgs(char* sendBuf)
 int Client::SendingMsgs(char* sendBuf, int sizeOfBuffer)
 {
 	int bytesOut = sendto(out, sendBuf, sizeOfBuffer, 0, (sockaddr*)&server, serverLenght);
-	isSended = true;
 
 	if (bytesOut == SOCKET_ERROR)
 	{
-		isSended = false;
+		return WSAGetLastError();
 	}
 	return bytesOut;
-}
-
-bool Client::IsReceived() const
-{
-	return isReceived;
-}
-
-bool Client::IsSended() const
-{
-	return isSended;
 }
 
 Client::~Client()

@@ -35,7 +35,6 @@ class Game
 {
 public:
 	Game();
-	std::string RecivedFromServer() const;
 	void Update(std::mutex& mtx, sf::RenderWindow& window);
 	//~Game() = default;
 	bool IsRunning()const;
@@ -53,10 +52,8 @@ private:
 	PlayerState localPlayer;
 	char recvBuffer[1024];
 	char sendBuffer[1024];
-	int bytesRecived;
 	bool isRunning = true;
 	char input;
-	bool inDestruction;
 	sf::Keyboard kbd;
 	sf::RectangleShape player;
 	std::vector<sf::RectangleShape> otherPlayers;

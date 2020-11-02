@@ -11,10 +11,6 @@ Game::Game()
 	server.Bind(54000);
 	
 }
-std::string Game::RecivedFromClient() const
-{
-	return std::string(clientIP + " " + clientPort + ": " + std::string(recvBuffer) + " bytes recived = ");
-}
 void Game::Update(std::mutex& mtx)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -65,11 +61,11 @@ void Game::Update(std::mutex& mtx)
 				
 			}
 		}
-		for (auto& e : clientAttr)
+		for (unsigned short i = 0; i < clientAttr.size(); i++)
 		{
-			if (e.time_since_heard_from_client > clientTimeOut)
+			if (clientAttr.at(i).time_since_heard_from_client > clientTimeOut)
 			{
-				std::swap(e, clientAttr.back());
+				std::swap(clientAttr.at(i), clientAttr.back());
 				clientAttr.pop_back();
 			}
 		}

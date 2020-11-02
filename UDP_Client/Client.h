@@ -16,8 +16,6 @@ public:
 	int ReceivingMsgs(char* recBuf);
 	int SendingMsgs(char* sendBuf);
 	int SendingMsgs(char* sendBuf, int sizeOfBuffer);
-	bool IsReceived() const;
-	bool IsSended() const;
 	
 	template<typename T>
 	int WriteToBuffer(char* buffer, int index, T& var)
@@ -37,9 +35,4 @@ private:
 	sockaddr_in server;
 	SOCKET out;
 	int serverLenght = sizeof(server);
-	char buf[1024];
-	char bufOut[1024];
-	bool isReceived = false;
-	bool isSended = false;
-	unsigned short slot = 0xFFFF;
 };
