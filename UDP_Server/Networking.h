@@ -49,4 +49,12 @@ namespace Networking
 	{
 		float x, y;
 	};
+	struct ClientAttributes
+	{
+		unsigned short id;
+		IP_Endpoint ipPort;
+		PlayerState objects;
+		PlayerInput input;
+		float time_since_heard_from_client;
+	};
 }

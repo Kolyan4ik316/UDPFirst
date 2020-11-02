@@ -38,7 +38,7 @@ int main()
 				case sf::Event::Closed:
 					if (game.IsRunning())
 					{
-						game.OnDisable();
+						game.OnDisable(std::ref(mtx));
 					}
 					window.close();
 					break;
@@ -61,7 +61,7 @@ int main()
 					{
 						if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
 						{
-							game.OnDisable();
+							game.OnDisable(std::ref(mtx));
 							window.close();
 						}
 					}

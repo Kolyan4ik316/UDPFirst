@@ -24,61 +24,54 @@ void Game::Update(std::mutex& mtx)
 	
 	try
 	{
-		
-		for (auto it = slots.begin(); it != slots.end(); ++it)
+		if (!clientAttr.empty())
 		{
-			const unsigned short i = (unsigned short)std::distance(slots.begin(), it);
-			if (clientEndpoints.at(i).address)
+			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 			{
-				PlayerState state = { 0.0f, 0.0f };
+				const unsigned short i = (unsigned short)std::distance(clientAttr.begin(), it);
+				if (clientAttr.at(i).ipPort.address)
+				{
+					PlayerState state = { 0.0f, 0.0f };
 
-				if (clientInputs.at(i).up)
-				{
-					state.y -= acceleration * dt;
-					state.x = 0;
-				}
-				if (clientInputs.at(i).down)
-				{
-					state.y += acceleration * dt;
-					state.x = 0;
-				}
-				if (clientInputs.at(i).left)
-				{
-					state.x -= acceleration * dt;
-					state.y = 0;
-				}
-				if (clientInputs.at(i).right)
-				{
-					state.x += acceleration * dt;
-					state.y = 0;
-				}
-				if (clientInputs.at(i).empty)
-				{
-					state.x = 0;
-					state.y = 0;
-				}
-				
-				
-				clientObjects.at(i).x += state.x;
-				clientObjects.at(i).y += state.y;
+					if (clientAttr.at(i).input.up)
+					{
+						state.y -= acceleration * dt;
+						state.x = 0;
+					}
+					if (clientAttr.at(i).input.down)
+					{
+						state.y += acceleration * dt;
+						state.x = 0;
+					}
+					if (clientAttr.at(i).input.left)
+					{
+						state.x -= acceleration * dt;
+						state.y = 0;
+					}
+					if (clientAttr.at(i).input.right)
+					{
+						state.x += acceleration * dt;
+						state.y = 0;
+					}
+					if (clientAttr.at(i).input.empty)
+					{
+						state.x = 0;
+						state.y = 0;
+					}
 
-				time_since_heard_from_clients.at(i) += dt;
-				if (time_since_heard_from_clients.at(i) > clientTimeOut)
-				{
-					std::swap(clientEndpoints.at(i), clientEndpoints.back());
-					clientEndpoints.pop_back();
+					clientAttr.at(i).objects.x += state.x;
+					clientAttr.at(i).objects.y += state.y;
 
-					std::swap(time_since_heard_from_clients.at(i), time_since_heard_from_clients.back());
-					time_since_heard_from_clients.pop_back();
-
-					std::swap(clientObjects.at(i), clientObjects.back());
-					clientObjects.pop_back();
-
-					std::swap(clientInputs.at(i), clientInputs.back());
-					clientInputs.pop_back();
+					clientAttr.at(i).time_since_heard_from_client += dt;
+					if (clientAttr.at(i).time_since_heard_from_client > clientTimeOut)
+					{
+						std::swap(clientAttr.at(i), clientAttr.back());
+						clientAttr.pop_back();
+					}
 				}
 			}
 		}
+		
 		
 	}
 	catch (const std::out_of_range& oor)
@@ -86,13 +79,15 @@ void Game::Update(std::mutex& mtx)
 		std::cout << "Udpating error" << oor.what() << std::endl;
 		unsigned short slot;
 		server.ReadFromBuffer(slot, recvBuffer, 1);
-		if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 		{
-			const auto it = std::find(slots.begin(), slots.end(), slot);
-			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-			std::swap(slots.at(index), slots.back());
-			slots.pop_back();
-		}
+			if (it->id == slot)
+			{
+				const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
+				std::swap(clientAttr.at(index), clientAttr.back());
+				clientAttr.pop_back();
+			}
+		}	
 
 	}
 	
@@ -124,13 +119,19 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		{
 			unsigned short slot;
 			server.ReadFromBuffer(slot, recvBuffer, 1);
-			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			
+			//const auto ide = std::find(clientAttr.begin()->id, clientAttr.end()->id, slot);
+			//std::vector<ClientAttributes>::iterator it;
+			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 			{
-				const auto it = std::find(slots.begin(), slots.end(), slot);
-				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-				std::swap(slots.at(index), slots.back());
-				slots.pop_back();
+				if (it->id == slot)
+				{
+					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
+					std::swap(clientAttr.at(index), clientAttr.back());
+					clientAttr.pop_back();
+				}
 			}
+			
 			fromEndpoint = {};
 			ZeroMemory(recvBuffer, 1024);
 		}
@@ -154,30 +155,30 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		if (fromEndpoint.address)
 		{
 			std::cout << "Client_Message::Join from " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
-			clientEndpoints.push_back({});
-			time_since_heard_from_clients.push_back(0.0f);
-			clientObjects.push_back({});
-			clientInputs.push_back({});
-			slots.push_back(fromEndpoint.port);
 		
-		
-		
+			//slots.push_back(fromEndpoint.port);
+			clientAttr.push_back(ClientAttributes{ fromEndpoint.port,fromEndpoint, {}, {}, 0.0f });
 
 			sendBuffer[0] = (char)ServerMessage::Join_Result;
-			if (slots.back() != unsigned short(-1))
+			if (clientAttr.back().id != unsigned short(-1))
 			{
 				sendBuffer[1] = 1;
-				std::cout << "client will be assigned to slot " << slots.back() << std::endl;
-				server.WriteToBuffer(sendBuffer, 2, slots.back());
+				std::cout << "client will be assigned to slot " << clientAttr.back().id << std::endl;
+				server.WriteToBuffer(sendBuffer, 2, clientAttr.back().id);
 				server.SendingMsgs(sendBuffer, 4, from);
 				if (server.IsSended())
 				{
 					if (fromEndpoint.address)
 					{
-						clientEndpoints.back() = fromEndpoint;
+						/*clientEndpoints.back() = fromEndpoint;
 						time_since_heard_from_clients.back() = 0.0f;
 						clientObjects.back() = {};
-						clientInputs.back() = {};
+						clientInputs.back() = {};*/
+						
+						clientAttr.back().ipPort = fromEndpoint;
+						clientAttr.back().time_since_heard_from_client = 0.0f;
+						clientAttr.back().objects = {};
+						clientAttr.back().input = {};
 					}
 				
 				}
@@ -191,20 +192,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 				std::cout << "Can't let client in " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
 			
 			
-				slots.pop_back();
-			
-			
-				clientEndpoints.pop_back();
-
-			
-				time_since_heard_from_clients.pop_back();
-
-			
-				clientObjects.pop_back();
-
-			
-				clientInputs.pop_back();
-
+				clientAttr.pop_back();
 				fromEndpoint = {};
 			
 			}
@@ -220,32 +208,21 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		try
 		{
 			//ZeroMemory(recvBuffer, 1024);
-			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			
+			//const auto ide = std::find(clientAttr.begin()->id, clientAttr.end()->id, slot);
+			//std::vector<ClientAttributes>::iterator it;
+			//unsigned short index = 0;
+			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 			{
-				const auto it = std::find(slots.begin(), slots.end(), slot);
-				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-				
-				if (clientEndpoints.at(index) == fromEndpoint)
+				if (it->id == slot)
 				{
-					
-					std::swap(slots.at(index), slots.back());
-					slots.pop_back();
-
-					std::swap(clientEndpoints.at(index), clientEndpoints.back());
-					clientEndpoints.pop_back();
-
-					std::swap(time_since_heard_from_clients.at(index), time_since_heard_from_clients.back());
-					time_since_heard_from_clients.pop_back();
-
-					std::swap(clientObjects.at(index), clientObjects.back());
-					clientObjects.pop_back();
-
-					std::swap(clientInputs.at(index), clientInputs.back());
-					clientInputs.pop_back();
-					
+					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
+					std::swap(clientAttr.at(index), clientAttr.back());
+					clientAttr.pop_back();
 				}
-				
 			}
+				
+			
 			
 		}
 		catch (const std::out_of_range& oor)
@@ -253,13 +230,17 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 			std::cout << "Leave message error"<< oor.what() << std::endl;
 			unsigned short slot;
 			server.ReadFromBuffer(slot, recvBuffer, 1);
-			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			
+			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 			{
-				const auto it = std::find(slots.begin(), slots.end(), slot);
-				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-				std::swap(slots.at(index), slots.back());
-				slots.pop_back();
+				if (it->id == slot)
+				{
+					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
+					std::swap(clientAttr.at(index), clientAttr.back());
+					clientAttr.pop_back();
+				}
 			}
+			
 		}
 	}
 	break;
@@ -274,26 +255,30 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		
 		try
 		{
-			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			
+			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 			{
-				
-				const auto it = std::find(slots.begin(), slots.end(), slot);
-				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-
-				if (clientEndpoints.at(index) == fromEndpoint)
+				if (it->id == slot)
 				{
-					char input = recvBuffer[3];
-					
-					clientInputs.at(index).up = input == 1;
-					clientInputs.at(index).down = input == 2;
-					clientInputs.at(index).left = input == 3;
-					clientInputs.at(index).right = input == 4;
-					clientInputs.at(index).empty = input  == 0;
+					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
+					if (clientAttr.at(index).ipPort == fromEndpoint)
+					{
+						char input = recvBuffer[3];
 
-					time_since_heard_from_clients.at(index) = 0.0f;
-					
+						clientAttr.at(index).input.up = input == 1;
+						clientAttr.at(index).input.down = input == 2;
+						clientAttr.at(index).input.left = input == 3;
+						clientAttr.at(index).input.right = input == 4;
+						clientAttr.at(index).input.empty = input == 0;
+
+						clientAttr.at(index).time_since_heard_from_client = 0.0f;
+
+					}
 				}
 			}
+
+			
+			
 			
 		}
 		catch (const std::out_of_range& oor)
@@ -301,13 +286,17 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 			std::cout << "Input message error" << oor.what() << std::endl;
 			unsigned short slot;
 			server.ReadFromBuffer(slot, recvBuffer, 1);
-			if (std::find(slots.begin(), slots.end(), slot) != slots.end())
+			
+			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 			{
-				const auto it = std::find(slots.begin(), slots.end(), slot);
-				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-				std::swap(slots.at(index), slots.back());
-				slots.pop_back();
+				if (it->id == slot)
+				{
+					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
+					std::swap(clientAttr.at(index), clientAttr.back());
+					clientAttr.pop_back();
+				}
 			}
+			
 		}
 		
 		
@@ -327,18 +316,18 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	try
 	{
 		
-		for (auto it = slots.begin(); it != slots.end(); ++it)
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 		{
-			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+			const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
 			errorSlot = index;
 			
-			if (clientEndpoints.at(index).address)
+			if (clientAttr.at(index).ipPort.address)
 			{
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, *it);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->id);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).x);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).objects.x);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientObjects.at(index).y);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).objects.y);
 			}
 		}
 		
@@ -348,8 +337,8 @@ void Game::PackingSendBuf(std::mutex& mtx)
 		
 		std::cout << "Packing message error" << oor.what() << std::endl;
 		//std::lock_guard<std::mutex> lm(mtx);
-		std::swap(slots.at(errorSlot), slots.back());
-		slots.pop_back();
+		std::swap(clientAttr.at(errorSlot), clientAttr.back());
+		clientAttr.pop_back();
 
 		ZeroMemory(sendBuffer, 1024);
 		
@@ -369,14 +358,14 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	try
 	{
 		
-		for (auto it = slots.begin(); it != slots.end(); ++it)
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
 		{
-			const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+			const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
 			errorSlot = index;
-			if (clientEndpoints.at(index).address)
+			if (clientAttr.at(index).ipPort.address)
 			{
-				to.sin_addr.S_un.S_addr = clientEndpoints.at(index).address;
-				to.sin_port = clientEndpoints.at(index).port;
+				to.sin_addr.S_un.S_addr = clientAttr.at(index).ipPort.address;
+				to.sin_port = clientAttr.at(index).ipPort.port;
 				
 				if (to.sin_addr.S_un.S_addr)
 				{
@@ -390,8 +379,8 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	catch (const std::out_of_range& oor)
 	{
 		std::cout << "Sending packed message error" << oor.what() << std::endl;
-		std::swap(slots.at(errorSlot), slots.back());
-		slots.pop_back();
+		std::swap(clientAttr.at(errorSlot), clientAttr.back());
+		clientAttr.pop_back();
 
 		to = {};
 

@@ -32,11 +32,7 @@ private:
 	static constexpr float acceleration = 25.0f;
 	static constexpr float turnSpeed = 0.5f;
 private:
-	static constexpr unsigned short Max_Clients = 32;
-	std::vector<IP_Endpoint> clientEndpoints;
-	std::vector<PlayerState> clientObjects;
-	std::vector<PlayerInput> clientInputs;
-	std::vector<float> time_since_heard_from_clients;
-	std::vector<unsigned short> slots;
+	std::vector<ClientAttributes> clientAttr;
+	//std::vector<unsigned short> slots;
 	unsigned short errorSlot;
 };

@@ -12,8 +12,6 @@ std::string Game::RecivedFromServer() const
 }
 void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	std::lock_guard<std::mutex> lm(mtx);
 	window.clear();
 	
 		
@@ -56,7 +54,7 @@ void Game::OnEnable(std::mutex& mtx)
 void Game::UnpackingRecBuf(std::mutex& mtx)
 {
 	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
+	
 	client.ReceivingMsgs(std::ref(recvBuffer));
 	switch ((ServerMessage)recvBuffer[0])
 	{
@@ -64,7 +62,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 	{
 		if (recvBuffer[1])
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			std::lock_guard<std::mutex> lm(mtx);
 			client.ReadFromBuffer(ownSlot, recvBuffer, 2);
 
@@ -78,7 +76,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 	break;
 	case ServerMessage::State:
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		std::lock_guard<std::mutex> lm(mtx);
 		int packetSize = client.ReceivingMsgs(std::ref(recvBuffer));
 		int readIndex = 1;
@@ -155,6 +153,7 @@ void Game::PackingSendBuf(std::mutex& mtx, bool& focused)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	std::lock_guard<std::mutex> lm(mtx);
+	timeOut += ft.Mark();
 	
 	sendBuffer[0] = (char)ClientMessage::Input;
 	int bytes_written = 1;
@@ -165,15 +164,15 @@ void Game::PackingSendBuf(std::mutex& mtx, bool& focused)
 		{
 			OnDisable();
 		}*/
-		
 
-		
+
+
 		if (ownSlot != 0xFFFF)
 		{
-			
+
 			//sendBuffer[1] = ownSlot;
 			input = 0;
-			
+
 			if (kbd.isKeyPressed(sf::Keyboard::W))
 			{
 				input = 1;
@@ -190,23 +189,34 @@ void Game::PackingSendBuf(std::mutex& mtx, bool& focused)
 			{
 				input = 4;
 			}
-			
+
 		}
-		
+
 	}
 	sendBuffer[3] = input;
-	client.SendingMsgs(std::ref(sendBuffer), 4);
-	
-	
+	if ((client.SendingMsgs(std::ref(sendBuffer), 4) == 4))
+	{
+		timeOut = 0;
+	}
+
+
 	//sendBuffer[0] = (char)ClientMessage::Input;
 	//client.ReadFromBuffer(ownSlot, recvBuffer, 1);
 	//memcpy(&slot, &buffer[1], 2);
 	
 	
+	if(timeOut >= 10.f)
+	{
+		OnEnable(mtx);
+		timeOut = 0;
+	}
+	
 }
 
-void Game::OnDisable()
+void Game::OnDisable(std::mutex& mtx)
 {
+	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	std::lock_guard<std::mutex> lm(mtx);
 	if (ownSlot != 0xFFFF)
 	{
 		sendBuffer[0] = (char)ClientMessage::Leave;

@@ -43,14 +43,11 @@ public:
 	void OnEnable(std::mutex& mtx);
 	void UnpackingRecBuf(std::mutex& mtx);
 	void PackingSendBuf(std::mutex& mtx, bool& focused);
-	void OnDisable();
+	void OnDisable(std::mutex& mtx);
 private:
 	FrameTimer ft;
-	//std::vector<Vec2> clientsPos;
-	Vec2 clientPos;
 	Client client;
 	unsigned short ownSlot = 0xFFFF;
-	unsigned short otherIndex = 0xFFFF;
 	std::vector<unsigned short> slots;
 	std::vector<PlayerState> clientObjects;
 	PlayerState localPlayer;
@@ -59,11 +56,9 @@ private:
 	int bytesRecived;
 	bool isRunning = true;
 	char input;
-	//unsigned short slot ;
 	bool inDestruction;
 	sf::Keyboard kbd;
 	sf::RectangleShape player;
 	std::vector<sf::RectangleShape> otherPlayers;
-	//int bytesSended;
-
+	float timeOut = 0.0f;
 };
