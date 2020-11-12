@@ -5,9 +5,11 @@
 #include "Client.h"
 #include <vector>
 #include <string>
-#include <iostream>
 #include "FrameTimer.h"
 #include <mutex>
+#include "ClientAttributes.h"
+
+#pragma comment(lib, "Winmm.lib")
 
 /*
 	List to do:
@@ -44,20 +46,16 @@ public:
 	void PackingSendBuf(std::mutex& mtx, bool& focused);
 	void OnDisable(std::mutex& mtx);
 private:
+	
 	FrameTimer ft;
 	Client client;
 	unsigned short ownSlot = 0xFFFF;
-	std::vector<unsigned short> slots;
-	std::vector<PlayerState> clientObjects;
-	PlayerState localPlayer;
 	char recvBuffer[1024];
 	char sendBuffer[1024];
 	bool isRunning = true;
 	char input;
 	sf::Keyboard kbd;
-	sf::RectangleShape player;
-	std::vector<sf::RectangleShape> otherPlayers;
-	std::vector<float> time_since_heard_from_clients;
+	ClientAttributes player;
+	std::vector<ClientAttributes> otherPlayers;
 	static constexpr float timeOut = 15.0f;
-	float userTimeOut = 0.0f;
 };

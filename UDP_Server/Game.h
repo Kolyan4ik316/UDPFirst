@@ -1,11 +1,11 @@
 #pragma once
-#include "Vec2.h"
 #include "Server.h"
 #include <vector>
 #include <string>
 #include "FrameTimer.h"
 #include <iostream>
 #include <mutex>
+#include <map>
 
 class Game
 {
@@ -27,8 +27,7 @@ private:
 	static constexpr float maxSpeed = 50.0f;
 	static constexpr float clientTimeOut = 15.0f;
 	static constexpr float acceleration = 25.0f;
-	static constexpr float turnSpeed = 0.5f;
+	static constexpr unsigned short tempElement = 0xFFFF;
 private:
-	std::vector<ClientAttributes> clientAttr;
-	unsigned short errorSlot;
+	std::map<unsigned short, ClientAttributes> clientAttr;
 };

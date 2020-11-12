@@ -3,8 +3,7 @@
 Game::Game()
 {
 	client.HintServer("127.0.0.1", 54000);
-	player.setSize(sf::Vector2f(50.0f, 50.0f));
-	player.setFillColor(sf::Color::Green);
+	player.SetGraphicsAttr(sf::Vector2f(50.0f, 50.0f), sf::Color::Green);
 }
 void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 {
@@ -15,49 +14,39 @@ void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 	window.clear();
 	
 	
-
-	player.setPosition(sf::Vector2f(localPlayer.x, localPlayer.y));
-	window.draw(player);
-	userTimeOut += dt;
+	player.shape.setPosition(sf::Vector2f(player.objects.x, player.objects.y));
+	window.draw(player.shape);
+	player.time_since_heard_from_client += dt;
 	//std::cout << userTimeOut << std::endl;
 	
-	for (auto other = otherPlayers.begin(); other != otherPlayers.end(); other++)
+
+	for (auto it = otherPlayers.begin(); it != otherPlayers.end(); it++)
 	{
-		const unsigned short index0 = (unsigned short)std::distance(otherPlayers.begin(), other);
-		for (auto otherClient = clientObjects.begin(); otherClient != clientObjects.end(); otherClient++)
+		it->time_since_heard_from_client += dt;
+		
+		if (it->stage == ClientStage::Broadcast)
 		{
-			const unsigned short index1 = (unsigned short)std::distance(clientObjects.begin(), otherClient);
-			if (index0 == index1)
-			{
-				time_since_heard_from_clients.at(index0) += dt;
-
-				
-
-				otherPlayers.at(index1).setPosition(sf::Vector2f(clientObjects.at(index0).x, clientObjects.at(index0).y));
-				window.draw(otherPlayers.at(index0));
-			}
+			it->SetGraphicsAttr(sf::Vector2f(50.0f, 50.0f), sf::Color::Yellow);
 		}
+		else
+		{
+			it->SetGraphicsAttr(sf::Vector2f(50.0f, 50.0f), sf::Color::Red);
+		}
+		it->shape.setPosition(sf::Vector2f(it->objects.x, it->objects.y));
+		window.draw(it->shape);
+		
 	}
-	for (unsigned short index = 0; index < time_since_heard_from_clients.size(); index++)
+
+	for (unsigned short index = 0; index < otherPlayers.size(); index++)
 	{
 		//std::cout << slots.at(index) << " - user have time out: " << time_since_heard_from_clients.at(index) << std::endl;
-		if (time_since_heard_from_clients.at(index) > timeOut)
+		if (otherPlayers.at(index).time_since_heard_from_client > timeOut || otherPlayers.at(index).stage == ClientStage::Leave)
 		{
-
-			std::swap(slots.at(index), slots.back());
-			slots.pop_back();
-
-			std::swap(clientObjects.at(index), clientObjects.back());
-			clientObjects.pop_back();
-
 			std::swap(otherPlayers.at(index), otherPlayers.back());
 			otherPlayers.pop_back();
 
-			std::swap(time_since_heard_from_clients.at(index), time_since_heard_from_clients.back());
-			time_since_heard_from_clients.pop_back();
 		}
 	}
-	
 	
 	
 	window.display();
@@ -91,11 +80,12 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 			std::lock_guard<std::mutex> lm(mtx);
 			client.ReadFromBuffer(ownSlot, recvBuffer, 2);
 
-			std::cout << "server assigned us slot " << std::to_string(ownSlot) << std::endl;
+			//std::cout << "server assigned us slot " << std::to_string(ownSlot) << std::endl;
 		}
 		else
 		{
-			std::cout << "server didn't let us in " << std::endl;
+			throw(std::exception("server didn't let us in"));
+			//std::cout << "server didn't let us in " << std::endl;
 		}
 	}
 	break;
@@ -109,72 +99,61 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		while (readIndex < packetSize)
 		{
 			unsigned short recvSlot;
+
 			readIndex += client.ReadFromBuffer(recvSlot, recvBuffer, readIndex);
-			if ((std::find(slots.begin(), slots.end(), recvSlot) != slots.end()) && recvSlot != ownSlot)
+			auto it = std::find_if(otherPlayers.begin(), otherPlayers.end(), [&recvSlot](const ClientAttributes& currAttrib) { return currAttrib.slot == recvSlot; });
+			
+			if (it != otherPlayers.end())
 			{
-					
-				const auto it = std::find(slots.begin(), slots.end(), recvSlot);
-				const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
+				const unsigned short index = (unsigned short)std::distance(otherPlayers.begin(), it);
+				
+				char curState;
+				readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
+				otherPlayers.at(index).stage = ClientStage(curState);
 
-				readIndex += client.ReadFromBuffer(clientObjects.at(index).x, recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(otherPlayers.at(index).objects.x, recvBuffer, readIndex);
 
-				readIndex += client.ReadFromBuffer(clientObjects.at(index).y, recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(otherPlayers.at(index).objects.y, recvBuffer, readIndex);
 
-				readIndex += client.ReadFromBuffer(time_since_heard_from_clients.at(index), recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(otherPlayers.at(index).time_since_heard_from_client, recvBuffer, readIndex);
+
+				
+				
 				//std::cout << "ID : " << recvSlot << ", pos x : " << clientObjects.at(index).x << ", pos y: " << clientObjects.at(index).y << std::endl;
 						
 
 			}
-			else if(!(std::find(slots.begin(), slots.end(), recvSlot) != slots.end()) && recvSlot != ownSlot)
+			else if(recvSlot != ownSlot)
 			{
-				if (recvSlot != 0xFFFF)
-				{
-					float recivedX;
-					float recivedY;
-					float time;
-					readIndex += client.ReadFromBuffer(recivedX, recvBuffer, readIndex);
-					readIndex += client.ReadFromBuffer(recivedY, recvBuffer, readIndex);
-					readIndex += client.ReadFromBuffer(time, recvBuffer, readIndex);
-					slots.push_back(recvSlot);
-					
-					clientObjects.push_back(PlayerState{ recivedX, recivedY });
-					otherPlayers.push_back(sf::RectangleShape(sf::Vector2f(50.0f, 50.0f)));
-					otherPlayers.back().setFillColor(sf::Color::Red);
-					time_since_heard_from_clients.push_back(time);
-				}
-				else
-				{
-					const auto it = std::find(slots.begin(), slots.end(), recvSlot);
-					const unsigned short index = (unsigned short)std::distance(slots.begin(), it);
-
-					std::swap(slots.at(index), slots.back());
-					slots.pop_back();
-
-					std::swap(clientObjects.at(index), clientObjects.back());
-					clientObjects.pop_back();
-
-					std::swap(otherPlayers.at(index), otherPlayers.back());
-					otherPlayers.pop_back();
-
-					std::swap(time_since_heard_from_clients.at(index), time_since_heard_from_clients.back());
-					time_since_heard_from_clients.pop_back();
-
-				}
+				
+				
+				float recivedX;
+				float recivedY;
+				float time;
+				char curState;
+				readIndex += client.ReadFromBuffer(recivedX, recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(recivedY, recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(time, recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
+				ClientStage currState = ClientStage(curState);
+				PlayerState tempObj = PlayerState({ recivedX, recivedY });
+				ClientAttributes tempAttributes(recvSlot, currState, tempObj, time);
+				otherPlayers.push_back(tempAttributes);
 			}
 			else
 			{
 				if (recvSlot == ownSlot)
 				{
+					char curState;
+					readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
+					player.stage = ClientStage(curState);
 
-					readIndex += client.ReadFromBuffer(localPlayer.x, recvBuffer, readIndex);
+					readIndex += client.ReadFromBuffer(player.objects.x, recvBuffer, readIndex);
 
-					readIndex += client.ReadFromBuffer(localPlayer.y, recvBuffer, readIndex);
+					readIndex += client.ReadFromBuffer(player.objects.y, recvBuffer, readIndex);
 					
-					readIndex += client.ReadFromBuffer(userTimeOut, recvBuffer, readIndex);
+					readIndex += client.ReadFromBuffer(player.time_since_heard_from_client, recvBuffer, readIndex);
 
-					
-
-					//std::cout << "own player : " << "pos x : " << localPlayer.x << ", pos y: " << localPlayer.y << std::endl;
 				}
 			}
 		}
@@ -225,7 +204,7 @@ void Game::PackingSendBuf(std::mutex& mtx, bool& focused)
 	sendBuffer[3] = input;
 	if ((client.SendingMsgs(std::ref(sendBuffer), 4) == 4))
 	{
-		userTimeOut = 0;
+		player.time_since_heard_from_client = 0;
 	}
 
 

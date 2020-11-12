@@ -3,7 +3,10 @@
 #include "FrameTimer.h"
 
 
-int main()
+int WINAPI WinMain(HINSTANCE hInstance,	
+	HINSTANCE hPrevInstance,	
+	LPSTR lpCmdLine,
+	int nCmdShow)
 {
 	try
 	{
@@ -11,7 +14,7 @@ int main()
 		std::mutex mtx;
 		game.OnEnable(std::ref(mtx));
 		//FrameTimer ft;
-		std::cout << "Client start work" << std::endl;
+		//std::cout << "Client start work" << std::endl;
 		sf::RenderWindow window(sf::VideoMode(512, 512), "SFML Tutorial", sf::Style::Close | sf::Style::Resize);
 		std::thread receiver([&]()
 			{
@@ -43,7 +46,7 @@ int main()
 					window.close();
 					break;
 				case sf::Event::Resized:
-					std::cout << "Size of window : width : " << evnt.size.width << ", height : " << evnt.size.height << std::endl;
+					//std::cout << "Size of window : width : " << evnt.size.width << ", height : " << evnt.size.height << std::endl;
 					break;
 				case sf::Event::GainedFocus:
 				{
@@ -83,11 +86,11 @@ int main()
 	}
 	catch (std::exception& e)
 	{
-		std::cout << e.what() << std::endl;
+		//std::cout << e.what() << std::endl;
 	}
 	catch (...)
 	{
-		std::cout << "Something went wrong!" << std::endl;
+		//std::cout << "Something went wrong!" << std::endl;
 	}
 	return 0;
 }

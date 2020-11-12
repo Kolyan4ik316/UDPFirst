@@ -1,15 +1,11 @@
 #include "Game.h"
 #include <algorithm>
-#include <memory>
-
-
-#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 
 
 Game::Game()
 {
+	// Binding our UDP server to port
 	server.Bind(54000);
-	
 }
 void Game::Update(std::mutex& mtx)
 {
@@ -20,72 +16,59 @@ void Game::Update(std::mutex& mtx)
 	
 	try
 	{
-		
-		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
+		// Looping our players objects
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); it++)
 		{
-			const unsigned short i = (unsigned short)std::distance(clientAttr.begin(), it);
-			if (clientAttr.at(i).ipPort.address)
+			if (it->second.ipPort.address)
 			{
 				PlayerState state = { 0.0f, 0.0f };
 
-				if (clientAttr.at(i).input.up)
+				if (it->second.input.up)
 				{
 					state.y -= acceleration * dt;
 					state.x = 0;
 				}
-				if (clientAttr.at(i).input.down)
+				if (it->second.input.down)
 				{
 					state.y += acceleration * dt;
 					state.x = 0;
 				}
-				if (clientAttr.at(i).input.left)
+				if (it->second.input.left)
 				{
 					state.x -= acceleration * dt;
 					state.y = 0;
 				}
-				if (clientAttr.at(i).input.right)
+				if (it->second.input.right)
 				{
 					state.x += acceleration * dt;
 					state.y = 0;
 				}
-				if (clientAttr.at(i).input.empty)
+				if (it->second.input.empty)
 				{
 					state.x = 0;
 					state.y = 0;
 				}
 
-				clientAttr.at(i).objects.x += state.x;
-				clientAttr.at(i).objects.y += state.y;
+				it->second.objects.x += state.x;
+				it->second.objects.y += state.y;
 
-				clientAttr.at(i).time_since_heard_from_client += dt;
-				
+				it->second.time_since_heard_from_client += dt;
+
 			}
+			
 		}
-		for (unsigned short i = 0; i < clientAttr.size(); i++)
-		{
-			if (clientAttr.at(i).time_since_heard_from_client > clientTimeOut)
+		// Deleting if someone of player didn't sending any message over timeout
+		eraseIf(clientAttr, [](const std::pair<unsigned short, ClientAttributes>& mapy)
 			{
-				std::swap(clientAttr.at(i), clientAttr.back());
-				clientAttr.pop_back();
-			}
-		}
+				return mapy.second.time_since_heard_from_client > clientTimeOut;
+			});
+		
 		
 	}
 	catch (const std::out_of_range& oor)
 	{
+		// If we are looping over range
 		std::cout << "Udpating error" << oor.what() << std::endl;
-		unsigned short slot;
-		server.ReadFromBuffer(slot, recvBuffer, 1);
-		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
-		{
-			if (it->id == slot)
-			{
-				const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-				std::swap(clientAttr.at(index), clientAttr.back());
-				clientAttr.pop_back();
-			}
-		}	
-
 	}
 	
 }
@@ -103,10 +86,9 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 	bytesReceived = server.ReceivingMsgs(recvBuffer, from);
 	fromEndpoint.address = from.sin_addr.S_un.S_addr;
 	fromEndpoint.port = from.sin_port;
+	
 	if (bytesReceived == SOCKET_ERROR)
 	{
-		//IP_Endpoint fromEndpoint = {};
-		//sockaddr_in from = {};
 		BOOL bNewBehavior = FALSE;
 		DWORD dwBytesReturned = 0;
 		WSAIoctl(server.GetSocket(), SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0, &dwBytesReturned, NULL, NULL);
@@ -114,26 +96,13 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		
 		if (WSAGetLastError() == 0)
 		{
-			unsigned short slot;
-			server.ReadFromBuffer(slot, recvBuffer, 1);
-			
-			//const auto ide = std::find(clientAttr.begin()->id, clientAttr.end()->id, slot);
-			//std::vector<ClientAttributes>::iterator it;
-			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
-			{
-				if (it->id == slot)
-				{
-					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-					std::swap(clientAttr.at(index), clientAttr.back());
-					clientAttr.pop_back();
-				}
-			}
-			
+			// Just passing if we catch not full message
 			fromEndpoint = {};
 			ZeroMemory(recvBuffer, 1024);
 		}
 		else
 		{
+			// Other error messages
 			std::cout << "Error with receiving data " << WSAGetLastError() << std::endl;
 		}
 		
@@ -146,97 +115,77 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 	{
 
 		std::lock_guard<std::mutex> lm(mtx);
-		unsigned short slot = unsigned short(-1);
+		//unsigned short slot = unsigned short(-1);
 		
 		
 		if (fromEndpoint.address)
 		{
 			std::cout << "Client_Message::Join from " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
-		
-			//slots.push_back(fromEndpoint.port);
-			clientAttr.push_back(ClientAttributes{ fromEndpoint.port,fromEndpoint, {}, {}, 0.0f });
-
+			const unsigned short slot = fromEndpoint.port;
+			//server.ReadFromBuffer(slot, recvBuffer, 1);
+			clientAttr.insert(std::pair<unsigned short, ClientAttributes>({ slot }, ClientAttributes{ fromEndpoint, ClientStage::Broadcast, {}, {}, 0.0f }));
+			auto it = clientAttr.find(slot);
+			// To prevent end of our container
+			//it--;
+			
+			// Assigning join result to send buffer
 			sendBuffer[0] = (char)ServerMessage::Join_Result;
-			if (clientAttr.back().id != unsigned short(-1))
-			{
-				sendBuffer[1] = 1;
-				std::cout << "client will be assigned to slot " << clientAttr.back().id << std::endl;
-				server.WriteToBuffer(sendBuffer, 2, clientAttr.back().id);
-				server.SendingMsgs(sendBuffer, 4, from);
-				if (server.IsSended())
-				{
-					if (fromEndpoint.address)
-					{
-						/*clientEndpoints.back() = fromEndpoint;
-						time_since_heard_from_clients.back() = 0.0f;
-						clientObjects.back() = {};
-						clientInputs.back() = {};*/
-						
-						clientAttr.back().ipPort = fromEndpoint;
-						clientAttr.back().time_since_heard_from_client = 0.0f;
-						clientAttr.back().objects = {};
-						clientAttr.back().input = {};
-					}
+			// 1 of [1] if it was succesfull
+			sendBuffer[1] = 1;
+			std::cout << "client will be assigned to slot " << it->first << std::endl;
+			// Writing result to buffer and sening this message to client itself
+			server.WriteToBuffer(sendBuffer, 2, it->first);
+			server.SendingMsgs(sendBuffer, 4, from);
 				
-				}
-			}
-			else
+			if (!(server.IsSended()))
 			{
-				//std::lock_guard<std::mutex> lm(mtx);
+				// If failed with sending didn't assigning
+				// 0 of [1] if it failed
 				sendBuffer[1] = 0;
 				server.SendingMsgs(sendBuffer, 2, from);
 
 				std::cout << "Can't let client in " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
-			
-			
-				clientAttr.pop_back();
+
+				// Deleting new object
+				it->second.state = ClientStage::Leave;
+				clientAttr.erase(it);
 				fromEndpoint = {};
-			
+
 			}
+			
+			
+			
+			
 		}
 	}
 	break;
 	case ClientMessage::Leave:
 	{
-		std::lock_guard<std::mutex> lm(mtx);
+		//std::lock_guard<std::mutex> lm(mtx);
+		//mtx.lock();
 		std::cout << "Client_Message::Leave from " << fromEndpoint.address <<": "<<fromEndpoint.port << std::endl;
-		unsigned short slot;
-		server.ReadFromBuffer(slot, recvBuffer, 1);
+		const unsigned short slot = fromEndpoint.port;
+		//server.ReadFromBuffer(slot, recvBuffer, 1);
+		//mtx.unlock();
 		try
 		{
-			//ZeroMemory(recvBuffer, 1024);
-			
-			//const auto ide = std::find(clientAttr.begin()->id, clientAttr.end()->id, slot);
-			//std::vector<ClientAttributes>::iterator it;
-			//unsigned short index = 0;
-			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
+			mtx.lock();
+			auto it = clientAttr.find(slot);
+			mtx.unlock();
+			if (it != clientAttr.end())
 			{
-				if (it->id == slot)
-				{
-					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-					std::swap(clientAttr.at(index), clientAttr.back());
-					clientAttr.pop_back();
-				}
+				mtx.lock();
+				it->second.state = ClientStage::Leave;
+				mtx.unlock();
+				PackingSendBuf(mtx);
+				mtx.lock();
+				clientAttr.erase(it);
+				mtx.unlock();
 			}
-				
-			
-			
 		}
 		catch (const std::out_of_range& oor)
 		{
 			std::cout << "Leave message error"<< oor.what() << std::endl;
-			unsigned short slot;
-			server.ReadFromBuffer(slot, recvBuffer, 1);
-			
-			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
-			{
-				if (it->id == slot)
-				{
-					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-					std::swap(clientAttr.at(index), clientAttr.back());
-					clientAttr.pop_back();
-				}
-			}
 			
 		}
 	}
@@ -246,54 +195,28 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		std::lock_guard<std::mutex> lm(mtx);
 		//std::cout << "Client_Message::Input from \n"<<fromEndpoint.address << std::endl;
 		unsigned short slot;
-
-		
 		server.ReadFromBuffer(slot, recvBuffer, 1);
 		
 		try
-		{
-			
-			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
+		{			
+			auto it = clientAttr.find(slot);
+			if (it != clientAttr.end())
 			{
-				if (it->id == slot)
-				{
-					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-					if (clientAttr.at(index).ipPort == fromEndpoint)
-					{
-						char input = recvBuffer[3];
+				char input = recvBuffer[3];
+				it->second.input.up = input == 1;
+				it->second.input.down = input == 2;
+				it->second.input.left = input == 3;
+				it->second.input.right = input == 4;
+				it->second.input.empty = input == 0;
 
-						clientAttr.at(index).input.up = input == 1;
-						clientAttr.at(index).input.down = input == 2;
-						clientAttr.at(index).input.left = input == 3;
-						clientAttr.at(index).input.right = input == 4;
-						clientAttr.at(index).input.empty = input == 0;
+				it->second.time_since_heard_from_client = 0.0f;
 
-						clientAttr.at(index).time_since_heard_from_client = 0.0f;
-
-					}
-				}
 			}
-
-			
-			
 			
 		}
 		catch (const std::out_of_range& oor)
 		{
 			std::cout << "Input message error" << oor.what() << std::endl;
-			unsigned short slot;
-			server.ReadFromBuffer(slot, recvBuffer, 1);
-			
-			for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
-			{
-				if (it->id == slot)
-				{
-					const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-					std::swap(clientAttr.at(index), clientAttr.back());
-					clientAttr.pop_back();
-				}
-			}
-			
 		}
 		
 		
@@ -313,21 +236,24 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	try
 	{
 		
-		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); it++)
 		{
-			const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-			errorSlot = index;
-			
-			if (clientAttr.at(index).ipPort.address)
+			if (it->second.ipPort.address)
 			{
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->id);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->first);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).objects.x);
+				char currState = char(it->second.state);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, currState);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).objects.y);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.objects.x);
 
-				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, clientAttr.at(index).time_since_heard_from_client);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.objects.y);
+
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.time_since_heard_from_client);
+				
+
 			}
+			
 		}
 		
 	}
@@ -335,10 +261,6 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	{
 		
 		std::cout << "Packing message error" << oor.what() << std::endl;
-		//std::lock_guard<std::mutex> lm(mtx);
-		std::swap(clientAttr.at(errorSlot), clientAttr.back());
-		clientAttr.pop_back();
-
 		ZeroMemory(sendBuffer, 1024);
 		
 	}
@@ -357,29 +279,26 @@ void Game::PackingSendBuf(std::mutex& mtx)
 	try
 	{
 		
-		for (auto it = clientAttr.begin(); it != clientAttr.end(); ++it)
+		for (auto it = clientAttr.begin(); it != clientAttr.end(); it++)
 		{
-			const unsigned short index = (unsigned short)std::distance(clientAttr.begin(), it);
-			errorSlot = index;
-			if (clientAttr.at(index).ipPort.address)
+			if (it->second.ipPort.address)
 			{
-				to.sin_addr.S_un.S_addr = clientAttr.at(index).ipPort.address;
-				to.sin_port = clientAttr.at(index).ipPort.port;
-				
+				to.sin_addr.S_un.S_addr = it->second.ipPort.address;
+				to.sin_port = it->second.ipPort.port;
+
 				if (to.sin_addr.S_un.S_addr)
 				{
 					server.SendingMsgs(sendBuffer, bytesWriten, to);
+
 				}
-				
 			}
+			
 		}
 		
 	}
 	catch (const std::out_of_range& oor)
 	{
 		std::cout << "Sending packed message error" << oor.what() << std::endl;
-		std::swap(clientAttr.at(errorSlot), clientAttr.back());
-		clientAttr.pop_back();
 
 		to = {};
 

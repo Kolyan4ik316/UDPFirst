@@ -1,5 +1,4 @@
 #pragma once
-#include "Vec2.h"
 
 
 namespace Networking
@@ -23,6 +22,13 @@ namespace Networking
 		Join_Result,// tell client they're accepted/rejected
 		State 		// tell client game state
 	};
+	enum class ClientStage : char
+	{
+		Broadcast,	// Main channel (showing rooms)
+		Room,		// In Room
+		Game,		// In Game itself
+		Leave		// Leaving from server
+	};
 
 	struct PlayerInput
 	{
@@ -36,4 +42,22 @@ namespace Networking
 	{
 		float x, y;
 	};
+
+	template<class containerT, class predicateT>
+	void eraseIf(containerT& items, const predicateT& predicate)
+	{
+		for (auto it = items.begin(); it != items.end(); )
+		{
+			if (predicate(*it))
+			{
+				std::swap(*it, items.back());
+				items.pop_back();
+				//it = items.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
 }

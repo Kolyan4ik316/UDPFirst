@@ -25,8 +25,8 @@ void Server::Bind(unsigned short port)
 	{
 		throw(std::exception("Can't bind socket! " + WSAGetLastError()));
 	}
-	//unsigned long enabled = 1;
-	//ioctlsocket(in, FIONBIO, &enabled);
+	unsigned long enabled = 1;
+	ioctlsocket(in, FIONBIO, &enabled);
 	
 }
 

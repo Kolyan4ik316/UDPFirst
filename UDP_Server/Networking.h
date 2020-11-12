@@ -36,6 +36,14 @@ namespace Networking
 		State 		// tell client game state
 	};
 
+	enum class ClientStage : char
+	{
+		Broadcast,	// Main channel (showing rooms)
+		Room,		// In Room
+		Game,		// In Game itself
+		Leave		// Leaving from server
+	};
+
 	struct PlayerInput
 	{
 		int up; 
@@ -51,10 +59,25 @@ namespace Networking
 	};
 	struct ClientAttributes
 	{
-		unsigned short id;
 		IP_Endpoint ipPort;
+		ClientStage state;
 		PlayerState objects;
 		PlayerInput input;
 		float time_since_heard_from_client;
 	};
+	template<class containerT, class predicateT>
+	void eraseIf(containerT& items, const predicateT& predicate)
+	{
+		for (auto it = items.begin(); it != items.end(); )
+		{
+			if (predicate(*it))
+			{
+				it = items.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
 }
