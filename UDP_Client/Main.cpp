@@ -15,7 +15,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		game.OnEnable(std::ref(mtx));
 		//FrameTimer ft;
 		//std::cout << "Client start work" << std::endl;
-		sf::RenderWindow window(sf::VideoMode(512, 512), "SFML Tutorial", sf::Style::Close | sf::Style::Resize);
+		sf::RenderWindow window(sf::VideoMode(770, 650), "Battle city online", sf::Style::Close);
 		std::thread receiver([&]()
 			{
 				while (game.IsRunning())

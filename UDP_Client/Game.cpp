@@ -20,7 +20,7 @@ Game::Game()
 	
 	player.sprite.setTexture(texture);
 	player.sprite.setOrigin(8, 8);
-	player.sprite.scale(2.5f, 2.5f);
+	player.sprite.scale(2.7f, 2.7f);
 
 }
 void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
@@ -177,7 +177,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 				otherPlayers.back().text.setStyle(sf::Text::Bold | sf::Text::Underlined);
 				otherPlayers.back().sprite.setTexture(texture);
 				otherPlayers.back().sprite.setOrigin(8, 8);
-				otherPlayers.back().sprite.scale(2.5f, 2.5f);
+				otherPlayers.back().sprite.scale(2.7f, 2.7f);
 			}
 			else
 			{
