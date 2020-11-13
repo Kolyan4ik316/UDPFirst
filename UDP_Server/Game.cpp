@@ -22,26 +22,29 @@ void Game::Update(std::mutex& mtx)
 			if (it->second.ipPort.address)
 			{
 				PlayerState state = { 0.0f, 0.0f };
-
 				if (it->second.input.up)
 				{
 					state.y -= acceleration * dt;
 					state.x = 0;
+					it->second.direction = PlayerDirection::Up;
 				}
 				if (it->second.input.down)
 				{
 					state.y += acceleration * dt;
 					state.x = 0;
+					it->second.direction = PlayerDirection::Down;
 				}
 				if (it->second.input.left)
 				{
 					state.x -= acceleration * dt;
 					state.y = 0;
+					it->second.direction = PlayerDirection::Left;
 				}
 				if (it->second.input.right)
 				{
 					state.x += acceleration * dt;
 					state.y = 0;
+					it->second.direction = PlayerDirection::Right;
 				}
 				if (it->second.input.empty)
 				{
@@ -123,7 +126,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 			std::cout << "Client_Message::Join from " << fromEndpoint.address << ": " << fromEndpoint.port << std::endl;
 			const unsigned short slot = fromEndpoint.port;
 			//server.ReadFromBuffer(slot, recvBuffer, 1);
-			clientAttr.insert(std::pair<unsigned short, ClientAttributes>({ slot }, ClientAttributes{ fromEndpoint, ClientStage::Broadcast, {}, {}, 0.0f }));
+			clientAttr.insert(std::pair<unsigned short, ClientAttributes>({ slot }, ClientAttributes{ fromEndpoint, ClientStage::Broadcast, {}, {},PlayerDirection::Up, 0.0f }));
 			auto it = clientAttr.find(slot);
 			// To prevent end of our container
 			//it--;
@@ -248,6 +251,9 @@ void Game::PackingSendBuf(std::mutex& mtx)
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.objects.x);
 
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.objects.y);
+
+				char currDir= char(it->second.direction);
+				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, currDir);
 
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.time_since_heard_from_client);
 				

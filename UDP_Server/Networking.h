@@ -53,6 +53,14 @@ namespace Networking
 		int empty;
 	};
 
+	enum class PlayerDirection : char
+	{
+		Up,
+		Down,
+		Left,
+		Right,
+	};
+
 	struct PlayerState
 	{
 		float x, y;
@@ -63,6 +71,7 @@ namespace Networking
 		ClientStage state;
 		PlayerState objects;
 		PlayerInput input;
+		PlayerDirection direction;
 		float time_since_heard_from_client;
 	};
 	template<class containerT, class predicateT>

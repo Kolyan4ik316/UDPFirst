@@ -56,6 +56,8 @@ private:
 	char input;
 	sf::Keyboard kbd;
 	ClientAttributes player;
+	sf::Font font;
+	sf::Texture texture;
 	std::vector<ClientAttributes> otherPlayers;
 	static constexpr float timeOut = 15.0f;
 };

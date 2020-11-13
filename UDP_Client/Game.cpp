@@ -3,7 +3,25 @@
 Game::Game()
 {
 	client.HintServer("127.0.0.1", 54000);
-	player.SetGraphicsAttr(sf::Vector2f(50.0f, 50.0f), sf::Color::Green);
+	if (!font.loadFromFile("arial.ttf"))
+	{
+		throw(std::exception("Can't find your font!"));
+	}
+	player.text.setFont(font);
+	player.text.setCharacterSize(30);
+	player.text.setFillColor(sf::Color::Green);
+	player.text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+	
+	
+	if (!texture.loadFromFile("battle_city_sprites.png", sf::IntRect(0, 0, 16, 16)))
+	{
+		throw(std::exception("Error with loading texture!"));
+	}
+	
+	player.sprite.setTexture(texture);
+	player.sprite.setOrigin(8, 8);
+	player.sprite.scale(2.5f, 2.5f);
+
 }
 void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 {
@@ -13,9 +31,15 @@ void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 	
 	window.clear();
 	
+	//player.shape.setPosition(sf::Vector2f(player.objects.x, player.objects.y));
+	player.text.setString(std::to_string(ownSlot));
+	player.text.setPosition(sf::Vector2f(player.objects.x - 10.0f, player.objects.y - 10.0f));
+	//window.draw(player.shape);
+	player.Update(player.direction);
+	player.sprite.setPosition(sf::Vector2f(player.objects.x, player.objects.y));
 	
-	player.shape.setPosition(sf::Vector2f(player.objects.x, player.objects.y));
-	window.draw(player.shape);
+	window.draw(player.sprite);
+	window.draw(player.text);
 	player.time_since_heard_from_client += dt;
 	//std::cout << userTimeOut << std::endl;
 	
@@ -23,17 +47,16 @@ void Game::Update(std::mutex& mtx, sf::RenderWindow& window)
 	for (auto it = otherPlayers.begin(); it != otherPlayers.end(); it++)
 	{
 		it->time_since_heard_from_client += dt;
-		
-		if (it->stage == ClientStage::Broadcast)
-		{
-			it->SetGraphicsAttr(sf::Vector2f(50.0f, 50.0f), sf::Color::Yellow);
-		}
-		else
-		{
-			it->SetGraphicsAttr(sf::Vector2f(50.0f, 50.0f), sf::Color::Red);
-		}
-		it->shape.setPosition(sf::Vector2f(it->objects.x, it->objects.y));
-		window.draw(it->shape);
+			
+		//it->shape.setPosition(sf::Vector2f(it->objects.x, it->objects.y));
+		it->text.setPosition(sf::Vector2f(it->objects.x - 10.0f, it->objects.y - 10.0f));
+		it->text.setString(std::to_string(it->slot));
+		it->sprite.setPosition(sf::Vector2f(it->objects.x, it->objects.y));
+		it->Update(it->direction);
+		//window.draw(it->shape);
+		window.draw(it->sprite);
+		window.draw(it->text);
+
 		
 	}
 
@@ -114,6 +137,11 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 				readIndex += client.ReadFromBuffer(otherPlayers.at(index).objects.x, recvBuffer, readIndex);
 
 				readIndex += client.ReadFromBuffer(otherPlayers.at(index).objects.y, recvBuffer, readIndex);
+				
+				char curDir;
+				readIndex += client.ReadFromBuffer(curDir, recvBuffer, readIndex);
+				otherPlayers.at(index).direction = PlayerDirection(curDir);
+				
 
 				readIndex += client.ReadFromBuffer(otherPlayers.at(index).time_since_heard_from_client, recvBuffer, readIndex);
 
@@ -131,14 +159,25 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 				float recivedY;
 				float time;
 				char curState;
+				char curDir;
+				readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
 				readIndex += client.ReadFromBuffer(recivedX, recvBuffer, readIndex);
 				readIndex += client.ReadFromBuffer(recivedY, recvBuffer, readIndex);
+				readIndex += client.ReadFromBuffer(curDir, recvBuffer, readIndex);
 				readIndex += client.ReadFromBuffer(time, recvBuffer, readIndex);
-				readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
+				
 				ClientStage currState = ClientStage(curState);
 				PlayerState tempObj = PlayerState({ recivedX, recivedY });
-				ClientAttributes tempAttributes(recvSlot, currState, tempObj, time);
+				PlayerDirection tempDir = PlayerDirection(curDir);
+				ClientAttributes tempAttributes(recvSlot, currState, tempObj, tempDir, time);
 				otherPlayers.push_back(tempAttributes);
+				otherPlayers.back().text.setFont(font);
+				otherPlayers.back().text.setCharacterSize(30);
+				otherPlayers.back().text.setFillColor(sf::Color::Red);
+				otherPlayers.back().text.setStyle(sf::Text::Bold | sf::Text::Underlined);
+				otherPlayers.back().sprite.setTexture(texture);
+				otherPlayers.back().sprite.setOrigin(8, 8);
+				otherPlayers.back().sprite.scale(2.5f, 2.5f);
 			}
 			else
 			{
@@ -151,6 +190,10 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 					readIndex += client.ReadFromBuffer(player.objects.x, recvBuffer, readIndex);
 
 					readIndex += client.ReadFromBuffer(player.objects.y, recvBuffer, readIndex);
+
+					char curDir;
+					readIndex += client.ReadFromBuffer(curDir, recvBuffer, readIndex);
+					player.direction = PlayerDirection(curDir);
 					
 					readIndex += client.ReadFromBuffer(player.time_since_heard_from_client, recvBuffer, readIndex);
 

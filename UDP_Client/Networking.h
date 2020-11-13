@@ -30,6 +30,14 @@ namespace Networking
 		Leave		// Leaving from server
 	};
 
+	enum class PlayerDirection : char
+	{
+		Up,
+		Down,
+		Left,
+		Right,
+	};
+
 	struct PlayerInput
 	{
 		int up; 
