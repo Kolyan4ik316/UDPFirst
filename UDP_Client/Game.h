@@ -1,6 +1,9 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
+#include <SFML/Audio.hpp>
+
 #include "Vec2.h"
 #include "Client.h"
 #include <vector>
@@ -8,6 +11,7 @@
 #include "FrameTimer.h"
 #include <mutex>
 #include "ClientAttributes.h"
+#include <memory>
 
 #pragma comment(lib, "Winmm.lib")
 
@@ -30,32 +34,40 @@
 	time_since_heard_from_client
 	Later we can take name, color, etc
 	Compare if slot is already exsits
-	
+
 */
 
 class Game
 {
+private:
+	void InitWindow();
 public:
 	Game();
-	void Update(std::mutex& mtx, sf::RenderWindow& window);
-	//~Game() = default;
+	void Update();
+	void Render();
+	void UpdateSFMLEvents();
+	void Run();
+	virtual ~Game();
 	bool IsRunning()const;
 public:
-	void OnEnable(std::mutex& mtx);
-	void UnpackingRecBuf(std::mutex& mtx);
-	void PackingSendBuf(std::mutex& mtx, bool& focused);
-	void OnDisable(std::mutex& mtx);
+	void OnEnable();
+	void UnpackingRecBuf();
+	void PackingSendBuf();
+	void OnDisable();
 private:
-	
+	std::unique_ptr<sf::RenderWindow> window;
+	sf::Event sfEvent;
+	std::mutex mtx;
+	bool focused = true;
 	FrameTimer ft;
 	Client client;
+	char input = 0;
 	unsigned short ownSlot = 0xFFFF;
 	char recvBuffer[1024];
 	char sendBuffer[1024];
 	bool isRunning = true;
-	char input;
-	sf::Keyboard kbd;
 	ClientAttributes player;
+	sf::Keyboard kbd;
 	sf::Font font;
 	sf::Texture texture;
 	std::vector<ClientAttributes> otherPlayers;

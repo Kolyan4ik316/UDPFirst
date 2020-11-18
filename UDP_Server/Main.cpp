@@ -12,23 +12,30 @@ int main()
 		Game game;
 		std::mutex mtx;
 		std::cout << "Server start work" << std::endl;
-		std::thread receiver([&]()
-			{
-				while (game.IsRunning())
-				{
-					game.UnpackingRecBuf(std::ref(mtx));
-					//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-				}
-			});
-		while (game.IsRunning())
+		std::vector<std::thread> threads;
+		for (size_t i = 0; i < std::thread::hardware_concurrency(); i++)
 		{
-			game.Update(std::ref(mtx));
-			game.PackingSendBuf(std::ref(mtx));
-			
-			//game.RecivedFromClient();
-			//std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			threads.emplace_back([&]() 
+				{
+					while (game.IsRunning())
+					{
+						game.UnpackingRecBuf(std::ref(mtx));
+						game.Update(std::ref(mtx));
+						game.PackingSendBuf(std::ref(mtx));
+					}
+					
+				});
 		}
-		receiver.detach();
+		std::cout << "You have " << threads.size() << " threads!" << std::endl;
+		for (auto& e : threads)
+		{
+			if (e.joinable())
+			{
+				e.join();
+			}
+		}
+		
+		
 	}
 	catch (std::exception& e)
 	{

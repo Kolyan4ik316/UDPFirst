@@ -10,8 +10,8 @@ Client::Client()
 		throw(std::exception("WSAStartup failed: " + WSAGetLastError()));
 	}
 
-	//unsigned long enabled = 1;
-	//ioctlsocket(out, FIONBIO, &enabled);
+	unsigned long enabled = 1;
+	ioctlsocket(out, FIONBIO, &enabled);
 }
 
 void Client::HintServer(std::string ip, unsigned short port)
