@@ -1,5 +1,10 @@
 #pragma once
-#include "Vec2.h"
+
+#include <WS2tcpip.h>
+
+#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
+
+#pragma comment (lib, "ws2_32.lib")
 
 namespace Networking
 {

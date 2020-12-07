@@ -2,14 +2,30 @@
 
 void Game::InitWindow()
 {
-	window = std::make_unique<sf::RenderWindow>(sf::VideoMode(770, 650), "Battle city online", sf::Style::Close);
-	//window->setKeyRepeatEnabled(false);
-	window->setFramerateLimit(60);
+	std::ifstream ifs("config.ini");
+	sf::VideoMode windowConfig(770, 650);
+	std::string windowName = "Battle city online";
+	unsigned int frameRateLimit = 60;
+	bool vsync = false;
+
+	if (ifs.is_open())
+	{
+		std::getline(ifs, windowName);
+		ifs >> windowConfig.width >> windowConfig.height;
+		ifs >> frameRateLimit;
+		ifs >> vsync;
+		ifs >> serverAddress;
+		ifs >> serverPort;
+	}
+	ifs.close();
+	window = std::make_unique<sf::RenderWindow>(windowConfig, windowName, sf::Style::Close);
+	window->setFramerateLimit(frameRateLimit);
+	window->setVerticalSyncEnabled(vsync);
 }
 
 Game::Game()
 {
-	client.HintServer("127.0.0.1", 54000);
+	client.HintServer(serverAddress, serverPort);
 	InitWindow();
 	if (!font.loadFromFile("arial.ttf"))
 	{
@@ -35,6 +51,7 @@ void Game::Update()
 {
 	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	const float dt = ft.Mark();
+	UpdateSFMLEvents();
 	std::lock_guard<std::mutex> lm(mtx);
 	player.text.setString(std::to_string(ownSlot));
 	player.text.setPosition(sf::Vector2f(player.objects.x - 10.0f, player.objects.y - 10.0f));
@@ -97,18 +114,29 @@ void Game::UpdateSFMLEvents()
 		switch (sfEvent.type)
 		{
 		case sf::Event::Closed:
-			if (IsRunning())
-			{
-				OnDisable();
-			}
+		{
+			OnDisable();
 			window->close();
-			break;
+		}
+		break;
 		case sf::Event::Resized:
 			//std::cout << "Size of window : width : " << evnt.size.width << ", height : " << evnt.size.height << std::endl;
-			break;
+		break;
 		case sf::Event::GainedFocus:
 		{
 			focused = true;
+		}
+		break;
+		case sf::Event::KeyPressed:
+		{
+			if (focused)
+			{
+				if (sfEvent.key.code == sf::Keyboard::Key::Q)
+				{
+					OnDisable();
+					window->close();
+				}
+			}
 		}
 		break;
 		case sf::Event::LostFocus:
@@ -124,7 +152,7 @@ void Game::UpdateSFMLEvents()
 void Game::Run()
 {
 	OnEnable();
-	std::thread reciver([this]()
+	std::thread reciever([this]()
 		{
 			while (window->isOpen())
 			{
@@ -134,20 +162,17 @@ void Game::Run()
 		});
 	while (window->isOpen())
 	{
-		UpdateSFMLEvents();
 		Update();
 		Render();
 		PackingSendBuf();
 	}
+	
+	reciever.detach();
+	
 }
 
 Game::~Game()
 {
-}
-
-bool Game::IsRunning() const
-{
-	return isRunning;
 }
 
 void Game::OnEnable()
@@ -288,12 +313,6 @@ void Game::PackingSendBuf()
 	if (focused)
 	{
 
-		if (kbd.isKeyPressed(sf::Keyboard::Q))
-		{
-			OnDisable();
-
-			window->close();
-		}
 		if (kbd.isKeyPressed(sf::Keyboard::W))
 		{
 			input = 1;
@@ -343,5 +362,4 @@ void Game::OnDisable()
 	client.SendingMsgs(std::ref(sendBuffer), 2);
 	//slots.clear();
 	//clientObjects.clear();
-	isRunning = false;
 }

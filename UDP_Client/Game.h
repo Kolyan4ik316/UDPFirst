@@ -1,9 +1,6 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/System.hpp>
-#include <SFML/Audio.hpp>
 
+#include "State.h"
 #include "Vec2.h"
 #include "Client.h"
 #include <vector>
@@ -12,6 +9,7 @@
 #include <mutex>
 #include "ClientAttributes.h"
 #include <memory>
+
 
 #pragma comment(lib, "Winmm.lib")
 
@@ -23,7 +21,6 @@
 	Connect this class to player with id
 	Ping comparing
 	Create graphics class
-	Player will drawing as Circle Green, other players will be Red!
 
 	// Server
 	Create client class which including
@@ -48,7 +45,6 @@ public:
 	void UpdateSFMLEvents();
 	void Run();
 	virtual ~Game();
-	bool IsRunning()const;
 public:
 	void OnEnable();
 	void UnpackingRecBuf();
@@ -65,11 +61,12 @@ private:
 	unsigned short ownSlot = 0xFFFF;
 	char recvBuffer[1024];
 	char sendBuffer[1024];
-	bool isRunning = true;
 	ClientAttributes player;
 	sf::Keyboard kbd;
 	sf::Font font;
 	sf::Texture texture;
 	std::vector<ClientAttributes> otherPlayers;
 	static constexpr float timeOut = 15.0f;
+	std::string serverAddress = "127.0.0.1";
+	unsigned short serverPort = 54000;
 };

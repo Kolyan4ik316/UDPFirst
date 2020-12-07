@@ -149,6 +149,7 @@
     <ClInclude Include="Game.h" />
     <ClInclude Include="MainMath.h" />
     <ClInclude Include="Networking.h" />
+    <ClInclude Include="PSocket.h" />
     <ClInclude Include="Server.h" />
     <ClInclude Include="Vec2.h" />
   </ItemGroup>

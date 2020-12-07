@@ -1,15 +1,12 @@
 #pragma once
-#include <WS2tcpip.h>
+
 #include <exception>
 #include <string>
 #include <map>
 
 #include "Networking.h"
 
-#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 
-
-#pragma comment (lib, "ws2_32.lib")
 
 using namespace Networking;
 
