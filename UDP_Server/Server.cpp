@@ -35,11 +35,12 @@ int Server::ReceivingMsgs(char* recBuf, sockaddr_in& from)
 {
 	ZeroMemory(recBuf, sizeof(recBuf));
 	int fromLenght = sizeof(from);
-	int bytesIn = recvfrom(in, recBuf, 1024, 0, (sockaddr*)&from, &fromLenght);
+	int bytesIn = recvfrom(in, recBuf, sizeOfMsgs, 0, (sockaddr*)&from, &fromLenght);
 	isReceived = true;
-	if (bytesIn == SOCKET_ERROR)
+	if (bytesIn == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
 	{
 		isReceived = false;
+		return WSAGetLastError();
 	}
 	return bytesIn;
 }
@@ -50,9 +51,10 @@ int Server::SendingMsgs(char* sendBuf, int sizeOfBuffer, sockaddr_in& to)
 	int bytesOut = sendto(in, sendBuf, sizeOfBuffer, 0, (sockaddr*)&to, toLenght);
 	isSended = true;
 
-	if (bytesOut == SOCKET_ERROR)
+	if (bytesOut == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
 	{
 		isSended = false;
+		return WSAGetLastError();
 	}
 	return bytesOut;
 }
@@ -75,6 +77,11 @@ SOCKET Server::GetSocket()
 sockaddr_in Server::GetServerHint() const
 {
 	return serverHint;
+}
+
+void Server::SetSizeOfMsgs(int num)
+{
+	int sizeOfMsgs = num;
 }
 
 Server::~Server()

@@ -33,12 +33,14 @@ public:
 		memcpy(&var, &buffer[index], sizeof(var));
 		return sizeof(var);
 	}
+	void SetSizeOfMsgs(int num);
 	~Server();
 private:
 	SOCKET in;
 	sockaddr_in serverHint;
 	bool isReceived = false;
 	bool isSended = false;
+	int sizeOfMsgs = 1024;
 	
 	
 };

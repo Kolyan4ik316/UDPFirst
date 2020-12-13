@@ -20,6 +20,7 @@ void Tank::Update(const float& dt)
 	}
 	text.setString(std::to_string(slot));
 	text.setPosition(sf::Vector2f(sprite.getPosition().x, sprite.getPosition().y - 25.0f));
+	time_since_heard_from_client += dt;
 }
 void Tank::Render(sf::RenderTarget* target)
 {

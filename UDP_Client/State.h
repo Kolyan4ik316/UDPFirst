@@ -8,8 +8,6 @@
 #include <map>
 #include <mutex>
 
-#include<iostream>
-
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
@@ -18,16 +16,16 @@
 class State
 {
 public:
-	State(std::shared_ptr<sf::RenderWindow> window);
+	State(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<Client> client);
 	virtual void Update(const float& dt) = 0;
 	virtual void Render(sf::RenderTarget* target = nullptr) = 0;
 	virtual void CheckForQuit();
 	virtual void UpdateInput(const float& dt) = 0;
 	virtual void FocusedState(const bool& isFocused);
 	virtual void EndState() = 0;
-	virtual void UnpackMsg(Client& client, std::mutex& mtx) = 0;
-	virtual void PackMsg(Client& client, std::mutex& mtx) = 0;
-
+	virtual void UnpackMsg() = 0;
+	virtual void PackMsg() = 0;
+	virtual void ConnectToServer(std::string ip, unsigned short port);
 	const bool& GetQuit() const;
 
 	virtual ~State();
@@ -38,6 +36,7 @@ protected:
 	char sendBuffer[1024];
 	unsigned short ownSlot = 0XFFFF;
 	sf::Font font;
+	std::shared_ptr<Client> client;
 private:
 	bool quit = false;
 	bool focused = true;

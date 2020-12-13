@@ -16,6 +16,7 @@ void Game::Update(std::mutex& mtx)
 	
 	try
 	{
+		timeForSending += dt;
 		// Looping our players objects
 		for (auto it = clientAttr.begin(); it != clientAttr.end(); it++)
 		{
@@ -51,7 +52,6 @@ void Game::Update(std::mutex& mtx)
 					state.x = 0;
 					state.y = 0;
 				}
-
 				it->second.objects.x += state.x;
 				it->second.objects.y += state.y;
 
@@ -61,10 +61,10 @@ void Game::Update(std::mutex& mtx)
 			
 		}
 		// Deleting if someone of player didn't sending any message over timeout
-		eraseIf(clientAttr, [](const std::pair<unsigned short, ClientAttributes>& mapy)
+		/*eraseIf(clientAttr, [](const std::pair<unsigned short, ClientAttributes>& mapy)
 			{
 				return mapy.second.time_since_heard_from_client > clientTimeOut;
-			});
+			});*/
 		
 		
 	}
@@ -202,7 +202,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 		
 		try
 		{			
-			auto it = clientAttr.find(slot);
+			auto it = clientAttr.find(fromEndpoint.port);
 			if (it != clientAttr.end())
 			{
 				char input = recvBuffer[3];
@@ -231,14 +231,16 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 void Game::PackingSendBuf(std::mutex& mtx)
 {
 	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	
 	std::lock_guard<std::mutex> lm(mtx);
+
 	sendBuffer[0] = (char)ServerMessage::State;
 	int bytesWriten = 1;
-	
-	
+
+
 	try
 	{
-		
+
 		for (auto it = clientAttr.begin(); it != clientAttr.end(); it++)
 		{
 			if (it->second.ipPort.address)
@@ -252,39 +254,39 @@ void Game::PackingSendBuf(std::mutex& mtx)
 
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.objects.y);
 
-				char currDir= char(it->second.direction);
+				char currDir = char(it->second.direction);
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, currDir);
 
 				bytesWriten += server.WriteToBuffer(sendBuffer, bytesWriten, it->second.time_since_heard_from_client);
-				
+
 
 			}
-			
+
 		}
-		
+
 	}
 	catch (const std::out_of_range& oor)
 	{
-		
+
 		std::cout << "Packing message error" << oor.what() << std::endl;
 		ZeroMemory(sendBuffer, 1024);
-		
+
 	}
-	
-		
-	
+
+
+
 
 	sockaddr_in to;
 	to.sin_family = AF_INET;
 	to.sin_port = htons(54000);
 	int to_length = sizeof(to);
-	
-	
-	
-	
+
+
+
+
 	try
 	{
-		
+
 		for (auto it = clientAttr.begin(); it != clientAttr.end(); it++)
 		{
 			if (it->second.ipPort.address)
@@ -298,9 +300,9 @@ void Game::PackingSendBuf(std::mutex& mtx)
 
 				}
 			}
-			
+
 		}
-		
+
 	}
 	catch (const std::out_of_range& oor)
 	{
@@ -310,5 +312,7 @@ void Game::PackingSendBuf(std::mutex& mtx)
 
 		ZeroMemory(sendBuffer, 1024);
 	}
+	
+	
 	
 }

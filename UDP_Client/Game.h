@@ -3,7 +3,6 @@
 #include "State.h"
 #include "Client.h"
 #include "FrameTimer.h"
-#include "ClientAttributes.h"
 
 #include "GameState.h"
 
@@ -44,31 +43,17 @@ public:
 	void UpdateSFMLEvents();
 	void Run();
 public:
-	void OnEnable();
-	void UnpackingRecBuf();
-	void PackingSendBuf();
-	void OnDisable();
-public:
 	virtual ~Game();
 private:
 	std::stack<std::unique_ptr<State>> states;
 	std::shared_ptr<sf::RenderWindow> window;
+	std::shared_ptr<Client> client;
 	sf::Event sfEvent;
 	std::mutex mtx;
 	float dt;
 	bool focused = true;
 	FrameTimer ft;
-	Client client;
-	char input = 0;
 	unsigned short ownSlot = 0xFFFF;
-	char recvBuffer[1024];
-	char sendBuffer[1024];
-	ClientAttributes player;
-	sf::Keyboard kbd;
-	sf::Font font;
-	sf::Texture texture;
-	std::vector<ClientAttributes> otherPlayers;
-	static constexpr float timeOut = 15.0f;
 	std::string serverAddress;
 	unsigned short serverPort;
 };

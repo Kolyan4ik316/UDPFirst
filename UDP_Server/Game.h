@@ -30,4 +30,6 @@ private:
 	static constexpr unsigned short tempElement = 0xFFFF;
 private:
 	std::map<unsigned short, ClientAttributes> clientAttr;
+	float timeForSending = 0;
+	static constexpr float timeGranted = 1.0f / 120.0f;
 };

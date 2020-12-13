@@ -1,8 +1,9 @@
 #include "State.h"
 
-State::State(std::shared_ptr<sf::RenderWindow> window)
+State::State(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<Client> client)
 	:
-	window(window)
+	window(window),
+	client(client)
 {
 	if (!font.loadFromFile("arial.ttf"))
 	{
@@ -23,6 +24,11 @@ void State::CheckForQuit()
 void State::FocusedState(const bool& isFocused)
 {
 	focused = isFocused;
+}
+
+void State::ConnectToServer(std::string ip, unsigned short port)
+{
+	client->HintServer(ip, port);
 }
 
 const bool& State::GetQuit() const

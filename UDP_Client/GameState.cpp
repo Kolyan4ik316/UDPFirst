@@ -1,9 +1,15 @@
 #include "GameState.h"
 
-GameState::GameState(std::shared_ptr<sf::RenderWindow> window)
-	: State(window)
+GameState::GameState(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<Client> client)
+	: 
+	State(window, client)
 {
 	player.LoadTexture("battle_city_sprites.png", sf::IntRect(0, 0, 16, 16));
+	OnEnable();
+	threads.emplace([this]() {while (!GetQuit())
+	{
+		UnpackMsg();
+	}});
 }
 
 void GameState::Update(const float& dt)
@@ -19,8 +25,12 @@ void GameState::Update(const float& dt)
 			otherPlayers.pop_back();
 		}
 	}
-
 	player.Update(dt);
+	//UnpackMsg();
+	UpdateInput(dt);
+	PackMsg();
+	
+	
 	
 }
 
@@ -35,8 +45,6 @@ void GameState::Render(sf::RenderTarget* target)
 		otherPlayers.at(i).Render(target);
 	}
 	player.Render(target);
-	
-	
 }
 
 void GameState::UpdateInput(const float& dt)
@@ -63,12 +71,12 @@ void GameState::UpdateInput(const float& dt)
 		}
 	}
 	
-	
 }
 
-void GameState::UnpackMsg(Client& client, std::mutex& mtx)
+void GameState::UnpackMsg()
 {
-	client.ReceivingMsgs(std::ref(recvBuffer));
+	client->ReceivingMsgs(std::ref(recvBuffer));
+	std::lock_guard<std::mutex> lm(mtx);
 	switch ((ServerMessage)recvBuffer[0])
 	{
 	case ServerMessage::Join_Result:
@@ -76,30 +84,33 @@ void GameState::UnpackMsg(Client& client, std::mutex& mtx)
 		if (recvBuffer[1])
 		{
 			//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			std::lock_guard<std::mutex> lm(mtx);
-			client.ReadFromBuffer(ownSlot, recvBuffer, 2);
+			
+			client->ReadFromBuffer(ownSlot, recvBuffer, 2);
 
 			//std::cout << "server assigned us slot " << std::to_string(ownSlot) << std::endl;
 		}
 		else
 		{
-			throw(std::exception("server didn't let us in"));
+			//OnEnable();
+			if (player.time_since_heard_from_client > 15.0f)
+			{
+				throw(std::exception("server didn't let us in"));
+			}
 			//std::cout << "server didn't let us in " << std::endl;
 		}
 	}
 	break;
 	case ServerMessage::State:
 	{
-		//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		std::lock_guard<std::mutex> lm(mtx);
-		int packetSize = client.ReceivingMsgs(std::ref(recvBuffer));
+		
+		int packetSize = client->ReceivingMsgs(std::ref(recvBuffer));
 		int readIndex = 1;
 
 		while (readIndex < packetSize)
 		{
 			unsigned short recvSlot;
 
-			readIndex += client.ReadFromBuffer(recvSlot, recvBuffer, readIndex);
+			readIndex += client->ReadFromBuffer(recvSlot, recvBuffer, readIndex);
 			auto it = std::find_if(otherPlayers.begin(), otherPlayers.end(), [&recvSlot](const Tank& currAttrib) { return currAttrib.slot == recvSlot; });
 
 			if (it != otherPlayers.end())
@@ -107,24 +118,20 @@ void GameState::UnpackMsg(Client& client, std::mutex& mtx)
 				const unsigned short index = (unsigned short)std::distance(otherPlayers.begin(), it);
 
 				char curState;
-				readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(curState, recvBuffer, readIndex);
 				otherPlayers.at(index).stage = ClientStage(curState);
 
 				float x, y;
-				readIndex += client.ReadFromBuffer(x, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(x, recvBuffer, readIndex);
 
-				readIndex += client.ReadFromBuffer(y, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(y, recvBuffer, readIndex);
 				otherPlayers.at(index).SetPosition(x, y);
 				char curDir;
-				readIndex += client.ReadFromBuffer(curDir, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(curDir, recvBuffer, readIndex);
 				otherPlayers.at(index).SetDirection(PlayerDirection(curDir));
 
 
-				readIndex += client.ReadFromBuffer(otherPlayers.at(index).time_since_heard_from_client, recvBuffer, readIndex);
-
-
-
-				//std::cout << "ID : " << recvSlot << ", pos x : " << clientObjects.at(index).x << ", pos y: " << clientObjects.at(index).y << std::endl;
+				readIndex += client->ReadFromBuffer(otherPlayers.at(index).time_since_heard_from_client, recvBuffer, readIndex);
 
 
 			}
@@ -137,11 +144,11 @@ void GameState::UnpackMsg(Client& client, std::mutex& mtx)
 				float time;
 				char curState;
 				char curDir;
-				readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
-				readIndex += client.ReadFromBuffer(recivedX, recvBuffer, readIndex);
-				readIndex += client.ReadFromBuffer(recivedY, recvBuffer, readIndex);
-				readIndex += client.ReadFromBuffer(curDir, recvBuffer, readIndex);
-				readIndex += client.ReadFromBuffer(time, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(curState, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(recivedX, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(recivedY, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(curDir, recvBuffer, readIndex);
+				readIndex += client->ReadFromBuffer(time, recvBuffer, readIndex);
 
 				ClientStage currState = ClientStage(curState);
 				PlayerDirection tempDir = PlayerDirection(curDir);
@@ -163,19 +170,19 @@ void GameState::UnpackMsg(Client& client, std::mutex& mtx)
 					
 					player.slot = ownSlot;
 					char curState;
-					readIndex += client.ReadFromBuffer(curState, recvBuffer, readIndex);
+					readIndex += client->ReadFromBuffer(curState, recvBuffer, readIndex);
 					player.stage = ClientStage(curState);
 					float x, y;
-					readIndex += client.ReadFromBuffer(x, recvBuffer, readIndex);
+					readIndex += client->ReadFromBuffer(x, recvBuffer, readIndex);
 
-					readIndex += client.ReadFromBuffer(y, recvBuffer, readIndex);
+					readIndex += client->ReadFromBuffer(y, recvBuffer, readIndex);
 
 					player.SetPosition(x, y);
 					char curDir;
-					readIndex += client.ReadFromBuffer(curDir, recvBuffer, readIndex);
+					readIndex += client->ReadFromBuffer(curDir, recvBuffer, readIndex);
 					player.SetDirection(PlayerDirection(curDir));
 
-					readIndex += client.ReadFromBuffer(player.time_since_heard_from_client, recvBuffer, readIndex);
+					readIndex += client->ReadFromBuffer(player.time_since_heard_from_client, recvBuffer, readIndex);
 
 					player.text.setFont(font);
 					player.text.setCharacterSize(30);
@@ -190,16 +197,14 @@ void GameState::UnpackMsg(Client& client, std::mutex& mtx)
 	}
 }
 
-void GameState::PackMsg(Client& client, std::mutex& mtx)
+void GameState::PackMsg()
 {
 	std::lock_guard<std::mutex> lm(mtx);
-	input = 0;
-	UpdateInput(player.time_since_heard_from_client);
 	sendBuffer[0] = (char)ClientMessage::Input;
 	int bytes_written = 1;
-	bytes_written += client.WriteToBuffer(sendBuffer, bytes_written, ownSlot);
+	bytes_written += client->WriteToBuffer(sendBuffer, bytes_written, ownSlot);
 	sendBuffer[3] = input;
-	if ((client.SendingMsgs(std::ref(sendBuffer), 4) == 4))
+	if ((client->SendingMsgs(std::ref(sendBuffer), 4) == 4))
 	{
 		player.time_since_heard_from_client = 0;
 	}
@@ -207,9 +212,32 @@ void GameState::PackMsg(Client& client, std::mutex& mtx)
 
 void GameState::EndState()
 {
-	std::cout << "Ending game state!" << std::endl;
+}
+
+void GameState::OnEnable()
+{
+	std::lock_guard<std::mutex> lm(mtx);
+	sendBuffer[0] = (char)ClientMessage::Join;
+	client->SendingMsgs(std::ref(sendBuffer), 1);
+}
+
+void GameState::OnDisable()
+{
+	std::lock_guard<std::mutex> lm(mtx);
+	sendBuffer[0] = (char)ClientMessage::Leave;
+	client->WriteToBuffer(sendBuffer, 2, ownSlot);
+	
+	client->SendingMsgs(std::ref(sendBuffer), 2);
 }
 
 GameState::~GameState()
 {
+	for (size_t i = 0; i < threads.size(); i++)
+	{
+		if (threads.top().joinable())
+		{
+			threads.top().detach();
+			threads.pop();
+		}
+	}
 }
