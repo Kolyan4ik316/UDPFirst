@@ -30,6 +30,7 @@ public:
 		memcpy(&var, &buffer[index], sizeof(var));
 		return sizeof(var);
 	}
+	void Disconnect();
 	~Client();
 private:
 	sockaddr_in server;

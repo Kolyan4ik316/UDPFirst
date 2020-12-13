@@ -9,14 +9,14 @@ Client::Client()
 	{
 		throw(std::exception("WSAStartup failed: " + WSAGetLastError()));
 	}
-
-	unsigned long enabled = 1;
-	ioctlsocket(out, FIONBIO, &enabled);
 }
 
 void Client::HintServer(std::string ip, unsigned short port)
 {
 	// Create a hint structure for the server
+	unsigned long enabled = 1;
+	ioctlsocket(out, FIONBIO, &enabled);
+
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
 	inet_pton(AF_INET, ip.c_str(), &server.sin_addr);
@@ -57,11 +57,16 @@ int Client::SendingMsgs(char* sendBuf, int sizeOfBuffer)
 	return bytesOut;
 }
 
-Client::~Client()
+void Client::Disconnect()
 {
 	// Close the socket
 	closesocket(out);
 
 	// Shutdown winsock
 	WSACleanup();
+}
+
+Client::~Client()
+{
+	Disconnect();
 }

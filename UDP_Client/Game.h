@@ -1,14 +1,11 @@
 #pragma once
 
 #include "State.h"
-#include "Vec2.h"
 #include "Client.h"
-#include <vector>
-#include <string>
 #include "FrameTimer.h"
-#include <mutex>
 #include "ClientAttributes.h"
-#include <memory>
+
+#include "GameState.h"
 
 
 #pragma comment(lib, "Winmm.lib")
@@ -38,22 +35,27 @@ class Game
 {
 private:
 	void InitWindow();
+	void InitStates();
+	void QuitFromApplication();
 public:
 	Game();
 	void Update();
 	void Render();
 	void UpdateSFMLEvents();
 	void Run();
-	virtual ~Game();
 public:
 	void OnEnable();
 	void UnpackingRecBuf();
 	void PackingSendBuf();
 	void OnDisable();
+public:
+	virtual ~Game();
 private:
-	std::unique_ptr<sf::RenderWindow> window;
+	std::stack<std::unique_ptr<State>> states;
+	std::shared_ptr<sf::RenderWindow> window;
 	sf::Event sfEvent;
 	std::mutex mtx;
+	float dt;
 	bool focused = true;
 	FrameTimer ft;
 	Client client;
@@ -67,6 +69,6 @@ private:
 	sf::Texture texture;
 	std::vector<ClientAttributes> otherPlayers;
 	static constexpr float timeOut = 15.0f;
-	std::string serverAddress = "127.0.0.1";
-	unsigned short serverPort = 54000;
+	std::string serverAddress;
+	unsigned short serverPort;
 };

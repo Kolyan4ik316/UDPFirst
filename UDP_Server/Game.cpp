@@ -9,7 +9,7 @@ Game::Game()
 }
 void Game::Update(std::mutex& mtx)
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	const float dt = ft.Mark();
 	
 	std::lock_guard<std::mutex> lm(mtx);
@@ -230,7 +230,7 @@ void Game::UnpackingRecBuf(std::mutex& mtx)
 
 void Game::PackingSendBuf(std::mutex& mtx)
 {
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	std::lock_guard<std::mutex> lm(mtx);
 	sendBuffer[0] = (char)ServerMessage::State;
 	int bytesWriten = 1;

@@ -3,10 +3,11 @@
 #include "FrameTimer.h"
 
 
-int WINAPI WinMain(HINSTANCE hInstance,	
+/*int WINAPI WinMain(HINSTANCE hInstance,	
 	HINSTANCE hPrevInstance,	
 	LPSTR lpCmdLine,
-	int nCmdShow)
+	int nCmdShow)*/
+int main()
 {
 	try
 	{
@@ -16,11 +17,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 	catch (std::exception& e)
 	{
-		//std::cout << e.what() << std::endl;
+		MessageBoxA(NULL, e.what(), "Exception was throwned!", MB_OK);
 	}
 	catch (...)
 	{
-		//std::cout << "Something went wrong!" << std::endl;
+		MessageBoxA(NULL, "Uknown reason", "Exception was throwned!", MB_OK);
 	}
 	return 0;
 }

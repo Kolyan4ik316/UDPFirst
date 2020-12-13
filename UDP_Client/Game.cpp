@@ -7,6 +7,8 @@ void Game::InitWindow()
 	std::string windowName = "Battle city online";
 	unsigned int frameRateLimit = 60;
 	bool vsync = false;
+	serverAddress = "127.0.0.1";
+	serverPort = 54000;
 
 	if (ifs.is_open())
 	{
@@ -18,16 +20,28 @@ void Game::InitWindow()
 		ifs >> serverPort;
 	}
 	ifs.close();
-	window = std::make_unique<sf::RenderWindow>(windowConfig, windowName, sf::Style::Close);
+	window = std::make_shared<sf::RenderWindow>(windowConfig, windowName, sf::Style::Close);
 	window->setFramerateLimit(frameRateLimit);
 	window->setVerticalSyncEnabled(vsync);
 }
 
+void Game::InitStates()
+{
+	states.push(std::make_unique<GameState>(window));
+}
+
+void Game::QuitFromApplication()
+{
+	OnDisable();
+}
+
 Game::Game()
 {
-	client.HintServer(serverAddress, serverPort);
 	InitWindow();
-	if (!font.loadFromFile("arial.ttf"))
+	InitStates();
+	client.HintServer(serverAddress, serverPort);
+	
+	/*if (!font.loadFromFile("arial.ttf"))
 	{
 		throw(std::exception("Can't find your font!"));
 	}
@@ -45,14 +59,33 @@ Game::Game()
 	player.sprite.setTexture(texture);
 	player.sprite.setOrigin(8, 8);
 	player.sprite.scale(2.7f, 2.7f);
-
+	*/
 }
 void Game::Update()
 {
 	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	const float dt = ft.Mark();
+	dt = ft.Mark();
 	UpdateSFMLEvents();
-	std::lock_guard<std::mutex> lm(mtx);
+	
+
+	if (!states.empty())
+	{
+		states.top()->FocusedState(focused);
+		states.top()->Update(dt);
+
+		if (states.top()->GetQuit())
+		{
+			states.top()->EndState();
+			states.pop();
+		}
+	}
+	else
+	{
+		QuitFromApplication();
+		window->close();
+	}
+
+	/*std::lock_guard<std::mutex> lm(mtx);
 	player.text.setString(std::to_string(ownSlot));
 	player.text.setPosition(sf::Vector2f(player.objects.x - 10.0f, player.objects.y - 10.0f));
 	//window.draw(player.shape);
@@ -87,14 +120,19 @@ void Game::Update()
 
 		}
 	}
-
+	*/
 
 }
 
 void Game::Render()
 {
 	window->clear();
-	window->draw(player.sprite);
+
+	if (!states.empty())
+	{
+		states.top()->Render();
+	}
+	/*window->draw(player.sprite);
 	window->draw(player.text);
 
 	for (auto it = otherPlayers.begin(); it != otherPlayers.end(); it++)
@@ -103,7 +141,7 @@ void Game::Render()
 		//window.draw(it->shape);
 		window->draw(it->sprite);
 		window->draw(it->text);
-	}
+	}*/
 	window->display();
 }
 
@@ -127,18 +165,6 @@ void Game::UpdateSFMLEvents()
 			focused = true;
 		}
 		break;
-		case sf::Event::KeyPressed:
-		{
-			if (focused)
-			{
-				if (sfEvent.key.code == sf::Keyboard::Key::Q)
-				{
-					OnDisable();
-					window->close();
-				}
-			}
-		}
-		break;
 		case sf::Event::LostFocus:
 		{
 			focused = false;
@@ -156,7 +182,7 @@ void Game::Run()
 		{
 			while (window->isOpen())
 			{
-				UnpackingRecBuf();
+				states.top()->UnpackMsg(std::ref(client), std::ref(mtx));
 			}
 
 		});
@@ -164,7 +190,7 @@ void Game::Run()
 	{
 		Update();
 		Render();
-		PackingSendBuf();
+		states.top()->PackMsg(std::ref(client), std::ref(mtx));
 	}
 	
 	reciever.detach();
