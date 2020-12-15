@@ -23,13 +23,12 @@ void Game::InitWindow()
 	window = std::make_shared<sf::RenderWindow>(windowConfig, windowName, sf::Style::Close);
 	window->setFramerateLimit(frameRateLimit);
 	window->setVerticalSyncEnabled(vsync);
-	client = std::make_shared<Client>();
+	client = std::make_shared<Client>(serverAddress, serverPort);
 }
 
 void Game::InitStates()
 {
 	states.push(std::make_unique<GameState>(window, client));
-	states.top()->ConnectToServer(serverAddress, serverPort);
 }
 
 void Game::QuitFromApplication()

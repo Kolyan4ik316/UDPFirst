@@ -15,6 +15,7 @@ public:
 	bool IsRunning()const;
 	//~Game() = default;
 public:
+	void AcceptConnection(std::mutex& mtx);
 	void UnpackingRecBuf(std::mutex& mtx);
 	void PackingSendBuf(std::mutex& mtx);
 private:
@@ -29,6 +30,8 @@ private:
 	static constexpr float acceleration = 25.0f;
 	static constexpr unsigned short tempElement = 0xFFFF;
 private:
+	//std::shared_ptr<SOCKET> outSock;
+	SOCKET outSock;
 	std::map<unsigned short, ClientAttributes> clientAttr;
 	float timeForSending = 0;
 	static constexpr float timeGranted = 1.0f / 120.0f;

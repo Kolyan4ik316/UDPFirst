@@ -19,6 +19,7 @@ int main()
 				{
 					while (game.IsRunning())
 					{
+						game.AcceptConnection(std::ref(mtx));
 						game.UnpackingRecBuf(std::ref(mtx));
 						game.Update(std::ref(mtx));
 						game.PackingSendBuf(std::ref(mtx));

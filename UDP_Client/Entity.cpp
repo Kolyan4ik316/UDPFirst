@@ -1,8 +1,8 @@
 #include "Entity.h"
 Entity::Entity()
 {
-	//shape.setSize(sf::Vector2f(50.0f, 50.0f));
-	//shape.setFillColor(sf::Color::White);
+	sprite.setSize(sf::Vector2f(50.0f, 50.0f));
+	sprite.setFillColor(sf::Color::White);
 }
 void Entity::Update(const float& dt)
 {
@@ -32,7 +32,7 @@ void Entity::LoadTexture(std::string name, sf::IntRect rect)
 		loadedTexture = false;
 		throw(std::exception(error.c_str()));
 	}
-	sprite.setTexture(texture);
+	//sprite.setTexture(texture);
 	loadedTexture = true;
 }
 void Entity::LoadTextureFromImage(sf::Image& image, sf::IntRect rect)
@@ -42,5 +42,5 @@ void Entity::LoadTextureFromImage(sf::Image& image, sf::IntRect rect)
 		std::string error = std::string("Error with loading texture! ");
 		throw(std::exception(error.c_str()));
 	}
-	sprite.setTexture(texture);
+	//sprite.setTexture(texture);
 }

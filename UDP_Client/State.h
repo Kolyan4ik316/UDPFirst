@@ -8,6 +8,8 @@
 #include <map>
 #include <mutex>
 
+#include <iostream>
+
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
@@ -25,7 +27,6 @@ public:
 	virtual void EndState() = 0;
 	virtual void UnpackMsg() = 0;
 	virtual void PackMsg() = 0;
-	virtual void ConnectToServer(std::string ip, unsigned short port);
 	const bool& GetQuit() const;
 
 	virtual ~State();

@@ -26,11 +26,6 @@ void State::FocusedState(const bool& isFocused)
 	focused = isFocused;
 }
 
-void State::ConnectToServer(std::string ip, unsigned short port)
-{
-	client->HintServer(ip, port);
-}
-
 const bool& State::GetQuit() const
 {
 	return quit;

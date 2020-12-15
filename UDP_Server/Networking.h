@@ -31,7 +31,7 @@ namespace Networking
 	enum class ClientMessage : char
 	{
 		Join,		// tell server we're new here
-		Leave,		// tell server we're leaving
+		//Leave,		// tell server we're leaving
 		Input 		// tell server our user input
 	};
 
@@ -72,7 +72,8 @@ namespace Networking
 	};
 	struct ClientAttributes
 	{
-		IP_Endpoint ipPort;
+		SOCKET socket;
+		sockaddr_in addr;
 		ClientStage state;
 		PlayerState objects;
 		PlayerInput input;

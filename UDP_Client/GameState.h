@@ -22,4 +22,5 @@ private:
 	char input = 0;
 	std::mutex mtx;
 	std::stack<std::thread> threads;
+	//std::unique_ptr<std::thread> receiver;
 };

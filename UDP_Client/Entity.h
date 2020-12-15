@@ -14,7 +14,8 @@ public:
 	virtual ~Entity();
 protected:
 	sf::Texture texture;
-	sf::Sprite sprite;
+	//sf::Sprite sprite;
+	sf::RectangleShape sprite;
 	float movementSpeed = 60;
 	bool loadedTexture = false;
 private:

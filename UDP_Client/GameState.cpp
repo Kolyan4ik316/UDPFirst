@@ -4,18 +4,17 @@ GameState::GameState(std::shared_ptr<sf::RenderWindow> window, std::shared_ptr<C
 	: 
 	State(window, client)
 {
-	player.LoadTexture("battle_city_sprites.png", sf::IntRect(0, 0, 16, 16));
+	//player.LoadTexture("battle_city_sprites.png", sf::IntRect(0, 0, 16, 16));
 	OnEnable();
-	threads.emplace([this]() {while (!GetQuit())
-	{
-		UnpackMsg();
-	}});
+	
 }
 
 void GameState::Update(const float& dt)
 {
 	//std::cout << "Hello from game state!" << std::endl;
 	//UpdateInput(dt);
+	//UnpackMsg();
+	
 	for (size_t i = 0; i < otherPlayers.size(); i++)
 	{
 		otherPlayers.at(i).Update(dt);
@@ -26,9 +25,11 @@ void GameState::Update(const float& dt)
 		}
 	}
 	player.Update(dt);
-	//UnpackMsg();
+	
 	UpdateInput(dt);
 	PackMsg();
+	
+	
 	
 	
 	
@@ -75,35 +76,18 @@ void GameState::UpdateInput(const float& dt)
 
 void GameState::UnpackMsg()
 {
-	client->ReceivingMsgs(std::ref(recvBuffer));
 	std::lock_guard<std::mutex> lm(mtx);
+	int packetSize = client->ReceivingMsgs(std::ref(recvBuffer));
+	
+	/*if (packetSize == SOCKET_ERROR)
+	{
+		std::cout << "receiving error " << WSAGetLastError() << std::endl;
+	}*/
+	
 	switch ((ServerMessage)recvBuffer[0])
 	{
-	case ServerMessage::Join_Result:
-	{
-		if (recvBuffer[1])
-		{
-			//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			
-			client->ReadFromBuffer(ownSlot, recvBuffer, 2);
-
-			//std::cout << "server assigned us slot " << std::to_string(ownSlot) << std::endl;
-		}
-		else
-		{
-			//OnEnable();
-			if (player.time_since_heard_from_client > 15.0f)
-			{
-				throw(std::exception("server didn't let us in"));
-			}
-			//std::cout << "server didn't let us in " << std::endl;
-		}
-	}
-	break;
 	case ServerMessage::State:
 	{
-		
-		int packetSize = client->ReceivingMsgs(std::ref(recvBuffer));
 		int readIndex = 1;
 
 		while (readIndex < packetSize)
@@ -154,7 +138,7 @@ void GameState::UnpackMsg()
 				PlayerDirection tempDir = PlayerDirection(curDir);
 				//ClientAttributes tempAttributes(recvSlot, currState, tempObj, tempDir, time);
 				otherPlayers.push_back(recvSlot);
-				otherPlayers.back().LoadTexture("battle_city_sprites.png", sf::IntRect(0, 0, 16, 16));
+				//otherPlayers.back().LoadTexture("battle_city_sprites.png", sf::IntRect(0, 0, 16, 16));
 				otherPlayers.back().stage = ClientStage(curState);
 				otherPlayers.back().SetPosition(recivedX, recivedY);
 				otherPlayers.back().SetDirection(tempDir);
@@ -168,7 +152,7 @@ void GameState::UnpackMsg()
 				if (recvSlot == ownSlot)
 				{
 					
-					player.slot = ownSlot;
+					//player.slot = ownSlot;
 					char curState;
 					readIndex += client->ReadFromBuffer(curState, recvBuffer, readIndex);
 					player.stage = ClientStage(curState);
@@ -214,20 +198,55 @@ void GameState::EndState()
 {
 }
 
+/*void GameState::OnDisable()
+{
+	std::lock_guard<std::mutex> lm(mtx);
+	
+	//sendBuffer[0] = (char)ClientMessage::Join;
+	//client->SendingMsgs(std::ref(sendBuffer), 1);
+}*/
+
 void GameState::OnEnable()
 {
-	std::lock_guard<std::mutex> lm(mtx);
-	sendBuffer[0] = (char)ClientMessage::Join;
-	client->SendingMsgs(std::ref(sendBuffer), 1);
-}
+	//std::lock_guard<std::mutex> lm(mtx);
+	while (!client->HasConnection())
+	{
+		client->ConnectToServer();
+		//player.time_since_heard_from_client += dt;
+		if (player.TimeOutReached())
+		{
+			throw(std::exception("TimeOut was Reaced!"));
+		}
+	}
+	char tempSlot[1024];
+	ZeroMemory(tempSlot, 1024);
+	int tcpPacketSize = client->ReceivingTCPMsgs(tempSlot);
+	if (tcpPacketSize)
+	{
+		std::cout << "Something is sended " << tcpPacketSize << std::endl;
+	}
+	unsigned short tempVar;
+	client->ReadFromBuffer(tempVar, tempSlot, 0);
 
-void GameState::OnDisable()
-{
-	std::lock_guard<std::mutex> lm(mtx);
-	sendBuffer[0] = (char)ClientMessage::Leave;
-	client->WriteToBuffer(sendBuffer, 2, ownSlot);
-	
-	client->SendingMsgs(std::ref(sendBuffer), 2);
+	if (tempVar)
+	{
+		ownSlot = tempVar;
+	}
+
+	if (tcpPacketSize == SOCKET_ERROR)
+	{
+		std::cout << "receiving tcp error " << WSAGetLastError() << std::endl;
+	}
+	std::cout << "Slot is " << ownSlot << std::endl;
+	player.slot = ownSlot;
+
+	threads.emplace([this]()
+		{
+			while (!GetQuit())
+			{
+				UnpackMsg();
+			}
+		});
 }
 
 GameState::~GameState()

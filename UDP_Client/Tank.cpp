@@ -13,11 +13,11 @@ Tank::Tank(const unsigned short& slot)
 void Tank::Update(const float& dt)
 {
 	sprite.setOrigin(8, 8);
-	if (loadedTexture)
+	/*if (loadedTexture)
 	{
 		sprite.scale(2.7f, 2.7f);
 		loadedTexture = false;
-	}
+	}*/
 	text.setString(std::to_string(slot));
 	text.setPosition(sf::Vector2f(sprite.getPosition().x, sprite.getPosition().y - 25.0f));
 	time_since_heard_from_client += dt;

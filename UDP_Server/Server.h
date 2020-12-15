@@ -3,6 +3,9 @@
 #include <exception>
 #include <string>
 #include <map>
+#include <memory>
+
+#include <iostream>
 
 #include "Networking.h"
 
@@ -15,10 +18,14 @@ class Server
 public:
 	Server();
 	void Bind(unsigned short port);
+	//void SetAcceptebleSocket(std::shared_ptr<SOCKET> socket);
 	int ReceivingMsgs(char* recBuf, sockaddr_in& from);
 	int SendingMsgs(char* sendBuf, int sizeOfBuffer, sockaddr_in& to);
+	void Accept(SOCKET& sock ,sockaddr_in& addr);
 	bool IsReceived() const;
 	bool IsSended() const;
+	int SendingTCPMsgs(char* sendBuf, const SOCKET& sock);
+	int ReceivingTCPMsgs(char* recBuf, const SOCKET& sock);
 	SOCKET GetSocket();
 	sockaddr_in GetServerHint() const;
 	template<typename T>
@@ -36,8 +43,11 @@ public:
 	void SetSizeOfMsgs(int num);
 	~Server();
 private:
+	int sizeOfSH;
 	SOCKET in;
 	sockaddr_in serverHint;
+	SOCKET tcpIn;
+	//std::shared_ptr<SOCKET> tcpOut;
 	bool isReceived = false;
 	bool isSended = false;
 	int sizeOfMsgs = 1024;
